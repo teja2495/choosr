@@ -1,23 +1,25 @@
 package com.tk.choosr.ui.home
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -35,10 +37,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.tk.choosr.data.ChoiceList
 import com.tk.choosr.viewmodel.ListsViewModel
+import com.tk.choosr.ui.shuffle.ShuffleBottomDrawer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,29 +57,76 @@ fun HomeScreen(
     onShuffle: (String) -> Unit,
 ) {
     val lists = viewModel.lists
+    var showShuffleDrawer by remember { mutableStateOf(false) }
+    var selectedList by remember { mutableStateOf<ChoiceList?>(null) }
+
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Choosr") }, scrollBehavior = null) },
         floatingActionButton = {
-            FloatingActionButton(onClick = onCreateList) {
-                Icon(Icons.Default.Add, contentDescription = "Add List")
+            if (!showShuffleDrawer) {
+                FloatingActionButton(onClick = onCreateList) {
+                    Icon(Icons.Default.Add, contentDescription = "Add List")
+                }
             }
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { inner ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(inner),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(inner)
         ) {
-            items(lists.value, key = { it.id }) { list ->
-                ListCard(
-                    list = list,
-                    onShuffle = { onShuffle(list.id) },
-                    onEdit = { onEditList(list.id) },
-                    onDelete = { viewModel.deleteList(list.id) }
+            androidx.compose.foundation.layout.Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Custom title with minimal padding
+                Text(
+                    text = "Choosr",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp, bottom = 16.dp)
                 )
+                
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(lists.value, key = { it.id }) { list ->
+                        ListCard(
+                            list = list,
+                            onShuffle = { 
+                                selectedList = list
+                                showShuffleDrawer = true
+                            },
+                            onEdit = { onEditList(list.id) },
+                            onDelete = { viewModel.deleteList(list.id) }
+                        )
+                    }
+                }
+            }
+
+            // Bottom drawer overlay
+            if (showShuffleDrawer && selectedList != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable { showShuffleDrawer = false },
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    ShuffleBottomDrawer(
+                        list = selectedList,
+                        viewModel = viewModel,
+                        onClose = { showShuffleDrawer = false },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { /* Prevent click through */ }
+                    )
+                }
             }
         }
     }
@@ -85,7 +139,6 @@ private fun ListCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    var overflowOpen by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
 
     if (confirmDelete) {
@@ -101,39 +154,52 @@ private fun ListCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { onEdit() },
+                    onLongPress = { confirmDelete = true }
+                )
+            },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = androidx.compose.material3.MaterialTheme.shapes.medium
     ) {
-        androidx.compose.foundation.layout.Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        androidx.compose.foundation.layout.Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            androidx.compose.foundation.layout.Column(modifier = Modifier.weight(1f)) {
+            androidx.compose.foundation.layout.Column {
                 val title = buildString {
                     if (!list.emoji.isNullOrBlank()) append(list.emoji + " ")
                     append(list.name)
                 }
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text("${list.items.size} items", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = title, 
+                    style = MaterialTheme.typography.titleMedium, 
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "${list.items.size} items", 
+                    style = MaterialTheme.typography.bodySmall, 
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-            androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = onShuffle, enabled = list.items.isNotEmpty()) { Text("Shuffle") }
-                IconButton(onClick = { overflowOpen = !overflowOpen }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Menu")
-                }
-                androidx.compose.material3.DropdownMenu(expanded = overflowOpen, onDismissRequest = { overflowOpen = false }) {
-                    androidx.compose.material3.DropdownMenuItem(
-                        text = { Text("Edit") },
-                        onClick = { overflowOpen = false; onEdit() },
-                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
-                    )
-                    androidx.compose.material3.DropdownMenuItem(
-                        text = { Text("Delete") },
-                        onClick = { overflowOpen = false; confirmDelete = true },
-                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
-                    )
-                }
+            TextButton(
+                onClick = onShuffle, 
+                enabled = list.items.isNotEmpty(),
+                modifier = Modifier.fillMaxWidth()
+            ) { 
+                Text("Shuffle") 
             }
         }
     }

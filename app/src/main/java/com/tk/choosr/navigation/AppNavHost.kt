@@ -11,7 +11,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tk.choosr.ui.edit.EditListScreen
 import com.tk.choosr.ui.home.HomeScreen
-import com.tk.choosr.ui.shuffle.ShuffleResultScreen
 import com.tk.choosr.viewmodel.ListsViewModel
 
 @Composable
@@ -29,7 +28,7 @@ fun AppNavHost(
                 snackbarHostState = snackbarHostState,
                 onCreateList = { navController.navigate("${Routes.Edit}") },
                 onEditList = { id -> navController.navigate("${Routes.Edit}/$id") },
-                onShuffle = { id -> navController.navigate("${Routes.Shuffle}/$id") }
+                onShuffle = { id -> /* No longer needed - handled by drawer */ }
             )
         }
 
@@ -54,17 +53,6 @@ fun AppNavHost(
             )
         }
 
-        composable(
-            route = "${Routes.Shuffle}/{${ARG_LIST_ID}}",
-            arguments = listOf(navArgument(ARG_LIST_ID) { type = NavType.StringType })
-        ) { backStackEntry ->
-            val listId = backStackEntry.arguments?.getString(ARG_LIST_ID)!!
-            ShuffleResultScreen(
-                viewModel = viewModel,
-                listId = listId,
-                onDone = { navController.popBackStack() }
-            )
-        }
     }
 }
 
