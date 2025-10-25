@@ -153,23 +153,25 @@ fun ShuffleBottomDrawer(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Action button - centered
-            Button(
-                onClick = {
-                    isChoosing = true
-                    isShowingResult = false
-                    // Restart the choosing process
-                    coroutineScope.launch {
-                        delay(2000)
-                        currentIndex = viewModel.nextItemIndex(list?.id ?: "")
-                        isChoosing = false
-                        isShowingResult = true
-                    }
-                },
-                enabled = list?.items?.isNotEmpty() == true && !isChoosing,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Shuffle Again")
+            // Action button - centered (only show when not choosing)
+            if (!isChoosing) {
+                Button(
+                    onClick = {
+                        isChoosing = true
+                        isShowingResult = false
+                        // Restart the choosing process
+                        coroutineScope.launch {
+                            delay(2000)
+                            currentIndex = viewModel.nextItemIndex(list?.id ?: "")
+                            isChoosing = false
+                            isShowingResult = true
+                        }
+                    },
+                    enabled = list?.items?.isNotEmpty() == true,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Shuffle Again")
+                }
             }
         }
     }

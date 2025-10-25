@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
@@ -84,6 +85,16 @@ fun EditListScreen(
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
 
+    // Auto-save functionality
+    LaunchedEffect(name, items) {
+        val trimmedName = name.trim()
+        if (trimmedName.isNotEmpty() && items.isNotEmpty()) {
+            val list = (existing?.copy(name = trimmedName, items = items))
+                ?: ChoiceList(name = trimmedName, items = items)
+            if (existing == null) viewModel.addList(list) else viewModel.updateList(list)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -93,38 +104,19 @@ fun EditListScreen(
                         fontWeight = FontWeight.Bold
                     ) 
                 },
+                navigationIcon = {
+                    IconButton(onClick = onDone) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
-                ),
-                actions = {
-                    TextButton(
-                        onClick = {
-                            // Hide keyboard first
-                            keyboardController?.hide()
-                            
-                            val trimmedName = name.trim()
-                            if (trimmedName.isEmpty() || items.isEmpty()) {
-                                scope.launch { 
-                                    snackbarHostState.showSnackbar("Enter name and at least one item") 
-                                }
-                                return@TextButton
-                            }
-                            val list = (existing?.copy(name = trimmedName, items = items))
-                                ?: ChoiceList(name = trimmedName, items = items)
-                            if (existing == null) viewModel.addList(list) else viewModel.updateList(list)
-                            onDone()
-                        },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) { 
-                        Text(
-                            "Save",
-                            fontWeight = FontWeight.SemiBold
-                        ) 
-                    }
-                }
+                )
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -141,7 +133,7 @@ fun EditListScreen(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Edit list name") },
+                    label = { Text("List Name") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -170,58 +162,49 @@ fun EditListScreen(
 
             // Add item section
             item {
-                Card(
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp)
-                    ) {
-                        Text(
-                            text = "Add New Item",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OutlinedTextField(
-                                value = newItem,
-                                onValueChange = { newItem = it },
-                                label = { Text("Item name") },
-                                modifier = Modifier.weight(1f),
-                                singleLine = true,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                    focusedLabelColor = MaterialTheme.colorScheme.primary
-                                ),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            Button(
-                                onClick = {
-                                    val candidate = newItem.text.trim()
-                                    if (candidate.isNotEmpty() && items.none { it.equals(candidate, true) }) {
-                                        items = items + candidate
-                                        newItem = TextFieldValue()
-                                    }
-                                },
-                                enabled = newItem.text.trim().isNotEmpty(),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary
-                                ),
-                                shape = RoundedCornerShape(12.dp)
-                            ) { 
-                                Text("Add") 
+                    OutlinedTextField(
+                        value = newItem,
+                        onValueChange = { newItem = it },
+                        label = { Text("Add new item") },
+                        placeholder = { Text("Enter item name...") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    IconButton(
+                        onClick = {
+                            val candidate = newItem.text.trim()
+                            if (candidate.isNotEmpty() && items.none { it.equals(candidate, true) }) {
+                                items = items + candidate
+                                newItem = TextFieldValue()
+                                keyboardController?.hide()
                             }
-                        }
+                        },
+                        enabled = newItem.text.trim().isNotEmpty(),
+                        modifier = Modifier
+                            .height(56.dp)
+                            .width(56.dp)
+                    ) { 
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Add item",
+                            modifier = Modifier.size(28.dp),
+                            tint = if (newItem.text.trim().isNotEmpty()) 
+                                MaterialTheme.colorScheme.primary 
+                            else 
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
