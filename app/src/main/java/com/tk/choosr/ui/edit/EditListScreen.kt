@@ -57,6 +57,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
@@ -79,7 +80,6 @@ fun EditListScreen(
     var name by remember { mutableStateOf(existing?.name ?: "") }
     var newItem by remember { mutableStateOf(TextFieldValue()) }
     var items by remember { mutableStateOf(existing?.items ?: emptyList()) }
-    var showAddItem by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -128,15 +128,6 @@ fun EditListScreen(
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddItem = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add item")
-            }
-        }
     ) { inner ->
         LazyColumn(
             modifier = Modifier
@@ -169,89 +160,66 @@ fun EditListScreen(
                 ) {
                     Text(
                         text = "${items.size} items in this list",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Normal,
+                        color = Color(0xFFB0B0B0),
+                        fontStyle = FontStyle.Italic
                     )
                 }
             }
 
             // Add item section
-            if (showAddItem) {
-                item {
-                    AnimatedVisibility(
-                        visible = showAddItem,
-                        enter = slideInVertically() + fadeIn(),
-                        exit = slideOutVertically() + fadeOut()
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp)
                     ) {
-                        Card(
+                        Text(
+                            text = "Add New Item",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(
-                                modifier = Modifier.padding(20.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "Add New Item",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                    IconButton(
-                                        onClick = { showAddItem = false }
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = "Close",
-                                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
+                            OutlinedTextField(
+                                value = newItem,
+                                onValueChange = { newItem = it },
+                                label = { Text("Item name") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    focusedLabelColor = MaterialTheme.colorScheme.primary
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            Button(
+                                onClick = {
+                                    val candidate = newItem.text.trim()
+                                    if (candidate.isNotEmpty() && items.none { it.equals(candidate, true) }) {
+                                        items = items + candidate
+                                        newItem = TextFieldValue()
                                     }
-                                }
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    OutlinedTextField(
-                                        value = newItem,
-                                        onValueChange = { newItem = it },
-                                        label = { Text("Item name") },
-                                        modifier = Modifier.weight(1f),
-                                        singleLine = true,
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                            focusedLabelColor = MaterialTheme.colorScheme.primary
-                                        ),
-                                        shape = RoundedCornerShape(12.dp)
-                                    )
-                                    Button(
-                                        onClick = {
-                                            val candidate = newItem.text.trim()
-                                            if (candidate.isNotEmpty() && items.none { it.equals(candidate, true) }) {
-                                                items = items + candidate
-                                                newItem = TextFieldValue()
-                                                showAddItem = false
-                                            }
-                                        },
-                                        enabled = newItem.text.trim().isNotEmpty(),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primary,
-                                            contentColor = MaterialTheme.colorScheme.onPrimary
-                                        ),
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) { 
-                                        Text("Add") 
-                                    }
-                                }
+                                },
+                                enabled = newItem.text.trim().isNotEmpty(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) { 
+                                Text("Add") 
                             }
                         }
                     }
