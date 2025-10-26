@@ -69,6 +69,7 @@ import com.tk.choosr.data.ChoiceList
 import com.tk.choosr.viewmodel.ListsViewModel
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.collectAsState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,21 +78,51 @@ fun EditListScreen(
     listId: String?,
     onDone: () -> Unit,
 ) {
-    val existing = viewModel.lists.value.firstOrNull { it.id == listId }
-    var name by remember { mutableStateOf(existing?.name ?: "") }
+    val lists by viewModel.lists.collectAsState()
+    val existing = lists.firstOrNull { it.id == listId }
+    var name by remember(existing?.id) { mutableStateOf(existing?.name ?: "") }
     var newItem by remember { mutableStateOf(TextFieldValue()) }
-    var items by remember { mutableStateOf(existing?.items ?: emptyList()) }
+    var items by remember(existing?.id) { mutableStateOf(existing?.items ?: emptyList()) }
+    var createdListId by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
+    
+    // Update local items when existing changes (but only if it's actually different)
+    LaunchedEffect(existing) {
+        existing?.let {
+            createdListId = it.id
+            if (it.items != items) {
+                items = it.items
+            }
+            if (it.name != name) {
+                name = it.name
+            }
+        }
+    }
 
     // Auto-save functionality
     LaunchedEffect(name, items) {
         val trimmedName = name.trim()
         if (trimmedName.isNotEmpty() && items.isNotEmpty()) {
-            val list = (existing?.copy(name = trimmedName, items = items))
-                ?: ChoiceList(name = trimmedName, items = items)
-            if (existing == null) viewModel.addList(list) else viewModel.updateList(list)
+            // Only save if this is actually a change from what's in the ViewModel
+            val currentItems = existing?.items ?: emptyList()
+            val currentName = existing?.name ?: ""
+            if (items != currentItems || trimmedName != currentName) {
+                val list = (existing?.copy(name = trimmedName, items = items))
+                    ?: ChoiceList(name = trimmedName, items = items)
+                if (existing == null && createdListId == null) {
+                    // First time creating this list
+                    viewModel.addList(list)
+                    createdListId = list.id
+                } else if (existing == null && createdListId != null) {
+                    // Updating a newly created list (before navigating back)
+                    viewModel.updateList(list.copy(id = createdListId!!))
+                } else {
+                    // Updating existing list
+                    viewModel.updateList(list)
+                }
+            }
         }
     }
 
@@ -256,7 +287,12 @@ fun EditListScreen(
                     ) {
                         ItemCard(
                             item = item,
-                            onDelete = { items = items.filterNot { it == item } }
+                            onDelete = { 
+                                items = items.filterNot { it == item }
+                                existing?.id?.let { listId ->
+                                    viewModel.removeItem(listId, item)
+                                }
+                            }
                         )
                     }
                 }

@@ -35,6 +35,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -45,7 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tk.choosr.data.ChoiceList
 import com.tk.choosr.viewmodel.ListsViewModel
-import com.tk.choosr.ui.shuffle.ShuffleBottomDrawer
+import com.tk.choosr.ui.shuffle.ShuffleDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,16 +57,14 @@ fun HomeScreen(
     onEditList: (String) -> Unit,
     onShuffle: (String) -> Unit,
 ) {
-    val lists = viewModel.lists
+    val lists by viewModel.lists.collectAsState()
     var showShuffleDrawer by remember { mutableStateOf(false) }
     var selectedList by remember { mutableStateOf<ChoiceList?>(null) }
 
     Scaffold(
         floatingActionButton = {
-            if (!showShuffleDrawer) {
-                FloatingActionButton(onClick = onCreateList) {
-                    Icon(Icons.Default.Add, contentDescription = "Add List")
-                }
+            FloatingActionButton(onClick = onCreateList) {
+                Icon(Icons.Default.Add, contentDescription = "Add List")
             }
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
@@ -96,7 +95,7 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(lists.value, key = { it.id }) { list ->
+                    items(lists, key = { it.id }) { list ->
                         ListCard(
                             list = list,
                             onShuffle = { 
@@ -110,23 +109,13 @@ fun HomeScreen(
                 }
             }
 
-            // Bottom drawer overlay
+            // Shuffle dialog
             if (showShuffleDrawer && selectedList != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clickable { showShuffleDrawer = false },
-                    contentAlignment = Alignment.BottomCenter
-                ) {
-                    ShuffleBottomDrawer(
-                        list = selectedList,
-                        viewModel = viewModel,
-                        onClose = { showShuffleDrawer = false },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { /* Prevent click through */ }
-                    )
-                }
+                ShuffleDialog(
+                    list = selectedList,
+                    viewModel = viewModel,
+                    onDismiss = { showShuffleDrawer = false }
+                )
             }
         }
     }
