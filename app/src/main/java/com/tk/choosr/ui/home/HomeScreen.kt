@@ -27,6 +27,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
@@ -45,6 +46,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Color
 import com.tk.choosr.data.ChoiceList
 import com.tk.choosr.viewmodel.ListsViewModel
 import com.tk.choosr.ui.shuffle.ShuffleDialog
@@ -68,11 +73,14 @@ fun HomeScreen(
                 Icon(Icons.Default.Add, contentDescription = "Add List")
             }
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        contentWindowInsets = WindowInsets(top = 8.dp),
+        containerColor = Color.Black
     ) { inner ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(Color.Black)
                 .padding(inner)
         ) {
             androidx.compose.foundation.layout.Column(
@@ -83,16 +91,16 @@ fun HomeScreen(
                     text = "Choosr",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
+                    color = Color.White,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp, bottom = 16.dp)
+                        .padding(start = 16.dp, top = 4.dp, bottom = 16.dp)
                 )
                 
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 0.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -154,8 +162,8 @@ private fun ListCard(
                 )
             },
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.onSurface
+            containerColor = Color.Gray.copy(alpha = 0.3f),
+            contentColor = Color.White
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         shape = androidx.compose.material3.MaterialTheme.shapes.medium
@@ -181,15 +189,20 @@ private fun ListCard(
                 Text(
                     text = "${list.items.size} items", 
                     style = MaterialTheme.typography.bodySmall, 
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = Color.White.copy(alpha = 0.7f)
                 )
             }
-            TextButton(
+            IconButton(
                 onClick = onShuffle, 
                 enabled = list.items.isNotEmpty(),
                 modifier = Modifier.fillMaxWidth()
             ) { 
-                Text("Shuffle") 
+                Icon(
+                    painter = painterResource(id = com.tk.choosr.R.drawable.ic_shuffle),
+                    contentDescription = "Shuffle",
+                    tint = Color.White,
+                    modifier = Modifier.size(48.dp)
+                )
             }
         }
     }

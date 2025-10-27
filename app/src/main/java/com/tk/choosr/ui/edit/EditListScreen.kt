@@ -66,6 +66,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.foundation.layout.WindowInsets
 import com.tk.choosr.data.ChoiceList
 import com.tk.choosr.viewmodel.ListsViewModel
 import androidx.compose.runtime.rememberCoroutineScope
@@ -134,7 +135,8 @@ fun EditListScreen(
                     Text(
                         text = if (existing == null) "New List" else "Edit List",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
+                        fontSize = 20.sp,
+                        color = Color.White
                     ) 
                 },
                 navigationIcon = {
@@ -142,21 +144,24 @@ fun EditListScreen(
                         Icon(
                             Icons.Default.ArrowBack,
                             contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onSurface
+                            tint = Color.White
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                    containerColor = Color.Black,
+                    titleContentColor = Color.White
+                ),
+                windowInsets = WindowInsets(top = 8.dp)
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Color.Black
     ) { inner ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(Color.Black)
                 .padding(inner)
         ) {
             // Fixed top section
@@ -170,13 +175,15 @@ fun EditListScreen(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("List Name") },
+                    label = { Text("List Name", color = Color.White) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        focusedLabelColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                        focusedBorderColor = Color.White,
+                        focusedLabelColor = Color.White,
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
                     ),
                     shape = RoundedCornerShape(16.dp)
                 )
@@ -200,14 +207,16 @@ fun EditListScreen(
                         OutlinedTextField(
                             value = newItem,
                             onValueChange = { newItem = it },
-                            placeholder = { Text("Enter item name...") },
+                            placeholder = { Text("Enter item name...", color = Color.White.copy(alpha = 0.5f)) },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                focusedBorderColor = Color.White,
+                                focusedLabelColor = Color.White,
+                                unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                                unfocusedLabelColor = Color.White,
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White
                             ),
                             shape = RoundedCornerShape(16.dp)
                         )
@@ -312,6 +321,7 @@ fun EditListScreen(
                 text = "${items.size} ${if (items.size == 1) "item" else "items"}",
                 fontStyle = FontStyle.Italic,
                 style = MaterialTheme.typography.bodySmall,
+                color = Color.White,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp, horizontal = 16.dp),
@@ -348,7 +358,7 @@ private fun ItemRow(
                 text = item,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Normal,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = Color.White,
                 modifier = Modifier
                     .weight(1f)
                     .padding(horizontal = 16.dp)
@@ -360,7 +370,7 @@ private fun ItemRow(
                 Icon(
                     Icons.Default.Delete,
                     contentDescription = "Delete item",
-                    tint = MaterialTheme.colorScheme.error,
+                    tint = Color(0xFFFF6B6B),
                     modifier = Modifier.size(22.dp)
                 )
             }
