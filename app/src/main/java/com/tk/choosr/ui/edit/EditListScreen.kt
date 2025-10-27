@@ -23,12 +23,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -49,6 +53,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -73,6 +78,21 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.collectAsState
 
+private val COLOR_OPTIONS = listOf(
+    0xFFD4A017L, // Gold (default)
+    0xFFD32F2FL, // Red
+    0xFF1976D2L, // Blue
+    0xFF388E3CL, // Green
+    0xFFF57C00L, // Orange
+    0xFF7B1FA2L, // Purple
+    0xFF0288D1L, // Light Blue
+    0xFF00897BL, // Teal
+    0xFFE64A19L, // Deep Orange
+    0xFF5C6BC0L, // Indigo
+    0xFF558B2FL, // Light Green
+    0xFFAD1457L, // Pink
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditListScreen(
@@ -85,6 +105,17 @@ fun EditListScreen(
     var name by remember(existing?.id) { mutableStateOf(existing?.name ?: "") }
     var newItem by remember { mutableStateOf(TextFieldValue()) }
     var items by remember(existing?.id) { mutableStateOf(existing?.items ?: emptyList()) }
+    var selectedColor by remember(existing?.id) { 
+        mutableStateOf(
+            if (existing == null) {
+                // Set dark grey as default for new lists
+                0xFF1F1F1FL
+            } else {
+                existing.colorArgb
+            }
+        )
+    }
+    var showColorPicker by remember { mutableStateOf(false) }
     var createdListId by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -104,15 +135,16 @@ fun EditListScreen(
     }
 
     // Auto-save functionality
-    LaunchedEffect(name, items) {
+    LaunchedEffect(name, items, selectedColor) {
         val trimmedName = name.trim()
         if (trimmedName.isNotEmpty() && items.isNotEmpty()) {
             // Only save if this is actually a change from what's in the ViewModel
             val currentItems = existing?.items ?: emptyList()
             val currentName = existing?.name ?: ""
-            if (items != currentItems || trimmedName != currentName) {
-                val list = (existing?.copy(name = trimmedName, items = items))
-                    ?: ChoiceList(name = trimmedName, items = items)
+            val currentColor = existing?.colorArgb
+            if (items != currentItems || trimmedName != currentName || selectedColor != currentColor) {
+                val list = (existing?.copy(name = trimmedName, items = items, colorArgb = selectedColor))
+                    ?: ChoiceList(name = trimmedName, items = items, colorArgb = selectedColor)
                 if (existing == null && createdListId == null) {
                     // First time creating this list
                     viewModel.addList(list)
@@ -145,6 +177,18 @@ fun EditListScreen(
                             Icons.Default.ArrowBack,
                             contentDescription = "Back",
                             tint = Color.White
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showColorPicker = true }) {
+                        Icon(
+                            Icons.Default.Palette,
+                            contentDescription = "Choose color",
+                            tint = when {
+                                selectedColor == null || selectedColor == 0xFF1F1F1FL -> Color.White
+                                else -> Color(selectedColor!!)
+                            }
                         )
                     }
                 },
@@ -329,6 +373,86 @@ fun EditListScreen(
             )
         }
     }
+    
+    // Color Picker Dialog
+    if (showColorPicker) {
+        ColorPickerDialog(
+            currentColor = selectedColor,
+            onColorSelected = { color ->
+                selectedColor = color
+                showColorPicker = false
+            },
+            onDismiss = { showColorPicker = false }
+        )
+    }
+}
+
+@Composable
+private fun ColorPickerDialog(
+    currentColor: Long?,
+    onColorSelected: (Long?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { 
+            Text(
+                "Choose a color",
+                color = Color.White
+            ) 
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Color options grid
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp),
+                    contentPadding = PaddingValues(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(COLOR_OPTIONS) { color ->
+                        val isSelected = currentColor == color
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(color))
+                                .clickable { 
+                                    onColorSelected(if (isSelected) null else color)
+                                    onDismiss()
+                                }
+                                .border(
+                                    width = if (isSelected) 3.dp else 1.dp,
+                                    color = if (isSelected) Color.White else Color.Gray,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                        )
+                    }
+                }
+            }
+        },
+        containerColor = Color.Black,
+        confirmButton = {
+            TextButton(
+                onClick = { 
+                    onColorSelected(0xFF1F1F1FL)
+                    onDismiss()
+                }
+            ) {
+                Text("Reset to default", color = Color.White)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close", color = Color.White)
+            }
+        }
+    )
 }
 
 @Composable

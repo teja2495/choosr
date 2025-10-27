@@ -162,7 +162,7 @@ private fun ListCard(
                 )
             },
         colors = CardDefaults.cardColors(
-            containerColor = Color.Gray.copy(alpha = 0.3f),
+            containerColor = list.colorArgb?.let { Color(it) } ?: Color(0xFF1F1F1F),
             contentColor = Color.White
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),

@@ -75,7 +75,7 @@ fun ShuffleResultScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Button(onClick = { currentIndex.value = viewModel.nextItemIndex(listId) }, enabled = (list?.items?.isNotEmpty() == true)) {
-                    Text("Shuffle Again")
+                    Text("Choose Again")
                 }
                 Button(onClick = onDone) { Text("Done") }
             }

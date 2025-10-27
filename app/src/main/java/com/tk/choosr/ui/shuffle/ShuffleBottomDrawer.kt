@@ -170,7 +170,7 @@ fun ShuffleBottomDrawer(
                     enabled = list?.items?.isNotEmpty() == true,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Shuffle Again")
+                    Text("Choose Again")
                 }
             }
         }
