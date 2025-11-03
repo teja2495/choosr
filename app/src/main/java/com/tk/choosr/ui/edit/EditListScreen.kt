@@ -270,7 +270,6 @@ fun EditListScreen(
                                 if (candidate.isNotEmpty() && items.none { it.equals(candidate, true) }) {
                                     items = items + candidate
                                     newItem = TextFieldValue()
-                                    keyboardController?.hide()
                                 }
                             },
                             containerColor = if (newItem.text.trim().isNotEmpty()) 
@@ -438,6 +437,11 @@ private fun ColorPickerDialog(
         },
         containerColor = Color.Black,
         confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close", color = Color.White)
+            }
+        },
+        dismissButton = {
             TextButton(
                 onClick = { 
                     onColorSelected(0xFF1F1F1FL)
@@ -445,11 +449,6 @@ private fun ColorPickerDialog(
                 }
             ) {
                 Text("Reset to default", color = Color.White)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close", color = Color.White)
             }
         }
     )

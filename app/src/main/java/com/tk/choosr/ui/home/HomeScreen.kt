@@ -19,7 +19,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -48,8 +48,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.RoundedCornerShape
 import com.tk.choosr.data.ChoiceList
 import com.tk.choosr.viewmodel.ListsViewModel
 import com.tk.choosr.ui.shuffle.ShuffleDialog
@@ -68,11 +70,6 @@ fun HomeScreen(
     var selectedList by remember { mutableStateOf<ChoiceList?>(null) }
 
     Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(onClick = onCreateList) {
-                Icon(Icons.Default.Add, contentDescription = "Add List")
-            }
-        },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         contentWindowInsets = WindowInsets(top = 8.dp),
         containerColor = Color.Black
@@ -100,7 +97,7 @@ fun HomeScreen(
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 0.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 150.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -126,6 +123,20 @@ fun HomeScreen(
                     onDismiss = { showShuffleDrawer = false }
                 )
             }
+
+            // Floating Action Button positioned manually
+            ExtendedFloatingActionButton(
+                onClick = onCreateList,
+                icon = {
+                    Icon(Icons.Default.Add, contentDescription = "Add List")
+                },
+                text = { Text("New List") },
+                containerColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .offset(x = (-8).dp, y = (-48).dp)
+                    .padding(end = 16.dp, bottom = 16.dp)
+            )
         }
     }
 }
@@ -166,7 +177,7 @@ private fun ListCard(
             contentColor = Color.White
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = androidx.compose.material3.MaterialTheme.shapes.medium
+        shape = RoundedCornerShape(20.dp)
     ) {
         androidx.compose.foundation.layout.Column(
             modifier = Modifier
