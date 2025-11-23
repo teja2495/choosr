@@ -12,7 +12,8 @@ data class ChoiceList(
 
 data class ExportData(
     val lists: List<ChoiceList>,
-    val avoidPreviousResults: Boolean
+    val avoidPreviousResults: Boolean,
+    val viewType: String? = null
 )
 
 

@@ -21,6 +21,9 @@ class ListsViewModel(application: Application) : AndroidViewModel(application) {
     private val _avoidPreviousResults = MutableStateFlow(repository.getAvoidPreviousResults())
     val avoidPreviousResults: StateFlow<Boolean> = _avoidPreviousResults.asStateFlow()
 
+    private val _viewType = MutableStateFlow(repository.getViewType())
+    val viewType: StateFlow<String> = _viewType.asStateFlow()
+
     private val shuffleManager = ShuffleSessionManager()
 
     init {
@@ -30,6 +33,11 @@ class ListsViewModel(application: Application) : AndroidViewModel(application) {
     fun setAvoidPreviousResults(value: Boolean) {
         _avoidPreviousResults.value = value
         repository.setAvoidPreviousResults(value)
+    }
+
+    fun setViewType(value: String) {
+        _viewType.value = value
+        repository.setViewType(value)
     }
 
     fun addList(list: ChoiceList) = updateLists(_lists.value + list)
@@ -93,6 +101,7 @@ class ListsViewModel(application: Application) : AndroidViewModel(application) {
             // Reload data from repository
             _lists.value = repository.loadLists()
             _avoidPreviousResults.value = repository.getAvoidPreviousResults()
+            _viewType.value = repository.getViewType()
         }
         return success
     }

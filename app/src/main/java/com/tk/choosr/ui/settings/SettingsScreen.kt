@@ -57,6 +57,7 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val avoidPreviousResults by viewModel.avoidPreviousResults.collectAsState()
+    val viewType by viewModel.viewType.collectAsState()
     val lists by viewModel.lists.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -180,6 +181,42 @@ fun SettingsScreen(
                     Switch(
                         checked = avoidPreviousResults,
                         onCheckedChange = { viewModel.setAvoidPreviousResults(it) }
+                    )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Color(0xFF1F1F1F),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "List View",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.size(4.dp))
+                        Text(
+                            text = "Display lists as rows instead of square cards",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.7f)
+                        )
+                    }
+                    Spacer(modifier = Modifier.size(16.dp))
+                    Switch(
+                        checked = viewType == "list",
+                        onCheckedChange = { 
+                            viewModel.setViewType(if (it) "list" else "grid")
+                        }
                     )
                 }
 

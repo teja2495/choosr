@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
@@ -52,6 +54,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -78,6 +81,7 @@ fun HomeScreen(
     onSettings: () -> Unit,
 ) {
     val lists by viewModel.lists.collectAsState()
+    val viewType by viewModel.viewType.collectAsState()
     var showShuffleDrawer by remember { mutableStateOf(false) }
     var selectedList by remember { mutableStateOf<ChoiceList?>(null) }
     var listToDelete by remember { mutableStateOf<ChoiceList?>(null) }
@@ -216,23 +220,43 @@ fun HomeScreen(
                         }
                     }
                 } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 150.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(lists, key = { it.id }) { list ->
-                            ListCard(
-                                list = list,
-                                onShuffle = { 
-                                    selectedList = list
-                                    showShuffleDrawer = true
-                                },
-                                onEdit = { onEditList(list.id) },
-                                onLongPress = { listToDelete = list }
-                            )
+                    if (viewType == "list") {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 150.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(lists, key = { it.id }) { list ->
+                                ListItemRow(
+                                    list = list,
+                                    onShuffle = { 
+                                        selectedList = list
+                                        showShuffleDrawer = true
+                                    },
+                                    onEdit = { onEditList(list.id) },
+                                    onLongPress = { listToDelete = list }
+                                )
+                            }
+                        }
+                    } else {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 150.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(lists, key = { it.id }) { list ->
+                                ListCard(
+                                    list = list,
+                                    onShuffle = { 
+                                        selectedList = list
+                                        showShuffleDrawer = true
+                                    },
+                                    onEdit = { onEditList(list.id) },
+                                    onLongPress = { listToDelete = list }
+                                )
+                            }
                         }
                     }
                 }
@@ -372,6 +396,73 @@ private fun ListCard(
                 onClick = onShuffle, 
                 enabled = isEnabled,
                 modifier = Modifier.fillMaxWidth()
+            ) { 
+                Icon(
+                    painter = painterResource(id = com.tk.choosr.R.drawable.ic_shuffle),
+                    contentDescription = "Shuffle",
+                    tint = if (isEnabled) Color.White else Color.White.copy(alpha = 0.4f),
+                    modifier = Modifier.size(48.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ListItemRow(
+    list: ChoiceList,
+    onShuffle: () -> Unit,
+    onEdit: () -> Unit,
+    onLongPress: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { onEdit() },
+                    onLongPress = { onLongPress() }
+                )
+            },
+        colors = CardDefaults.cardColors(
+            containerColor = list.colorArgb?.let { Color(it) } ?: Color(0xFF1F1F1F),
+            contentColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                val title = buildString {
+                    if (!list.emoji.isNullOrBlank()) append(list.emoji + " ")
+                    append(list.name)
+                }
+                Text(
+                    text = title, 
+                    style = MaterialTheme.typography.titleMedium, 
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.size(4.dp))
+                Text(
+                    text = "${list.items.size} items", 
+                    style = MaterialTheme.typography.bodySmall, 
+                    color = Color.White.copy(alpha = 0.7f)
+                )
+            }
+            val isEnabled = list.items.isNotEmpty()
+            IconButton(
+                onClick = onShuffle, 
+                enabled = isEnabled
             ) { 
                 Icon(
                     painter = painterResource(id = com.tk.choosr.R.drawable.ic_shuffle),

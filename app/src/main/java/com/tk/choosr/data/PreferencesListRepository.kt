@@ -36,10 +36,19 @@ class PreferencesListRepository(
         prefs.edit().putBoolean(KEY_AVOID_PREVIOUS_RESULTS, value).apply()
     }
 
+    fun getViewType(): String {
+        return prefs.getString(KEY_VIEW_TYPE, "grid") ?: "grid"
+    }
+
+    fun setViewType(value: String) {
+        prefs.edit().putString(KEY_VIEW_TYPE, value).apply()
+    }
+
     fun exportData(): String {
         val exportData = ExportData(
             lists = loadLists(),
-            avoidPreviousResults = getAvoidPreviousResults()
+            avoidPreviousResults = getAvoidPreviousResults(),
+            viewType = getViewType()
         )
         return gson.toJson(exportData)
     }
@@ -53,6 +62,7 @@ class PreferencesListRepository(
             // Replace all data with imported data
             saveLists(sanitizedLists)
             setAvoidPreviousResults(exportData.avoidPreviousResults)
+            setViewType(exportData.viewType ?: "grid")
             true
         }.getOrElse { false }
     }
@@ -109,6 +119,7 @@ class PreferencesListRepository(
         private const val PREFS_NAME = "choosr_prefs"
         private const val KEY_LISTS_V1 = "lists_v1"
         private const val KEY_AVOID_PREVIOUS_RESULTS = "avoid_previous_results"
+        private const val KEY_VIEW_TYPE = "view_type"
         private const val MIN_COLOR_VALUE = 0x00000000L
         private const val MAX_COLOR_VALUE = 0xFFFFFFFFL
     }
