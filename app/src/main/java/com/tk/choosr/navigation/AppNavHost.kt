@@ -58,6 +58,7 @@ fun AppNavHost(
         composable(Routes.Settings) {
             SettingsScreen(
                 viewModel = viewModel,
+                snackbarHostState = snackbarHostState,
                 onBack = { navController.popBackStack() }
             )
         }

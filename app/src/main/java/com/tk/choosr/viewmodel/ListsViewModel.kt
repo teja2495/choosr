@@ -80,6 +80,20 @@ class ListsViewModel(application: Application) : AndroidViewModel(application) {
         _lists.value = newLists
         viewModelScope.launch { repository.saveLists(newLists) }
     }
+
+    fun exportData(): String {
+        return repository.exportData()
+    }
+
+    fun importData(json: String): Boolean {
+        val success = repository.importData(json)
+        if (success) {
+            // Reload data from repository
+            _lists.value = repository.loadLists()
+            _avoidPreviousResults.value = repository.getAvoidPreviousResults()
+        }
+        return success
+    }
 }
 
 

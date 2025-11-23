@@ -26,11 +26,31 @@ class PreferencesListRepository(
     }
 
     fun getAvoidPreviousResults(): Boolean {
-        return prefs.getBoolean(KEY_AVOID_PREVIOUS_RESULTS, false)
+        return prefs.getBoolean(KEY_AVOID_PREVIOUS_RESULTS, true)
     }
 
     fun setAvoidPreviousResults(value: Boolean) {
         prefs.edit().putBoolean(KEY_AVOID_PREVIOUS_RESULTS, value).apply()
+    }
+
+    fun exportData(): String {
+        val exportData = ExportData(
+            lists = loadLists(),
+            avoidPreviousResults = getAvoidPreviousResults()
+        )
+        return gson.toJson(exportData)
+    }
+
+    fun importData(json: String): Boolean {
+        return runCatching {
+            val type = object : TypeToken<ExportData>() {}.type
+            val exportData: ExportData = gson.fromJson(json, type) ?: return false
+            
+            // Replace all data with imported data
+            saveLists(exportData.lists)
+            setAvoidPreviousResults(exportData.avoidPreviousResults)
+            true
+        }.getOrElse { false }
     }
 
     companion object {

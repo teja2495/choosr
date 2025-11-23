@@ -10,4 +10,9 @@ data class ChoiceList(
     val colorArgb: Long? = null
 )
 
+data class ExportData(
+    val lists: List<ChoiceList>,
+    val avoidPreviousResults: Boolean
+)
+
 

@@ -29,7 +29,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -40,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.WindowInsets
@@ -49,6 +57,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
+import androidx.compose.foundation.text.ClickableText
 import com.tk.choosr.data.ChoiceList
 import com.tk.choosr.viewmodel.ListsViewModel
 import com.tk.choosr.ui.shuffle.ShuffleDialog
@@ -67,6 +81,71 @@ fun HomeScreen(
     var showShuffleDrawer by remember { mutableStateOf(false) }
     var selectedList by remember { mutableStateOf<ChoiceList?>(null) }
     var listToDelete by remember { mutableStateOf<ChoiceList?>(null) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var showImportWarning by remember { mutableStateOf(false) }
+    var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
+    
+    // Helper function to perform import
+    fun performImport(uri: Uri) {
+        scope.launch {
+            try {
+                val inputStream = context.contentResolver.openInputStream(uri)
+                if (inputStream == null) {
+                    snackbarHostState.showSnackbar("Failed to open file")
+                    return@launch
+                }
+                
+                inputStream.use { stream ->
+                    val json = stream.bufferedReader().use { it.readText() }
+                    if (json.isBlank()) {
+                        snackbarHostState.showSnackbar("File is empty")
+                        return@launch
+                    }
+                    
+                    val success = viewModel.importData(json)
+                    if (success) {
+                        snackbarHostState.showSnackbar("Data imported successfully")
+                    } else {
+                        snackbarHostState.showSnackbar("Invalid file format")
+                    }
+                }
+            } catch (e: SecurityException) {
+                android.util.Log.e("HomeScreen", "Security error importing file", e)
+                snackbarHostState.showSnackbar("Permission denied. Please try again.")
+            } catch (e: Exception) {
+                android.util.Log.e("HomeScreen", "Error importing file", e)
+                snackbarHostState.showSnackbar("Error importing file: ${e.message}")
+            }
+        }
+    }
+
+    // Import launcher - accept any file, validate during import
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            try {
+                // Take persistable URI permission so we can read the file later
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (e: SecurityException) {
+                // If we can't take persistable permission, still try to import
+                // Some file pickers don't support this
+            }
+            
+            // If there are no existing lists, import directly without warning
+            if (lists.isEmpty()) {
+                performImport(it)
+            } else {
+                // Show warning if there are existing lists
+                pendingImportUri = it
+                showImportWarning = true
+            }
+        }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -109,23 +188,84 @@ fun HomeScreen(
                     }
                 }
                 
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 150.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(lists, key = { it.id }) { list ->
-                        ListCard(
-                            list = list,
-                            onShuffle = { 
-                                selectedList = list
-                                showShuffleDrawer = true
-                            },
-                            onEdit = { onEditList(list.id) },
-                            onLongPress = { listToDelete = list }
-                        )
+                if (lists.isEmpty()) {
+                    // Empty state placeholder
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 32.dp),
+                        contentAlignment = Alignment.TopCenter
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .padding(start = 14.dp, top = 150.dp, end = 14.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Text(
+                                text = "No lists yet",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = Color.White,
+                                textAlign = TextAlign.Center
+                            )
+                            val annotatedText = buildAnnotatedString {
+                                withStyle(style = SpanStyle(color = Color.White.copy(alpha = 0.7f))) {
+                                    append("Add a new list using the floating button below")
+                                }
+                                withStyle(style = SpanStyle(color = Color.White.copy(alpha = 0.7f))) {
+                                    append(" or ")
+                                }
+                                pushStringAnnotation(tag = "import", annotation = "import")
+                                withStyle(
+                                    style = SpanStyle(
+                                        color = Color.White,
+                                        textDecoration = TextDecoration.Underline
+                                    )
+                                ) {
+                                    append("import")
+                                }
+                                pop()
+                                withStyle(style = SpanStyle(color = Color.White.copy(alpha = 0.7f))) {
+                                    append(" if you already have a backup file.")
+                                }
+                            }
+                            ClickableText(
+                                text = annotatedText,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    textAlign = TextAlign.Center
+                                ),
+                                onClick = { offset ->
+                                    annotatedText.getStringAnnotations(
+                                        tag = "import",
+                                        start = offset,
+                                        end = offset
+                                    ).firstOrNull()?.let {
+                                        // Open file picker - accept any file type
+                                        importLauncher.launch(arrayOf("*/*"))
+                                    }
+                                }
+                            )
+                        }
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 150.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(lists, key = { it.id }) { list ->
+                            ListCard(
+                                list = list,
+                                onShuffle = { 
+                                    selectedList = list
+                                    showShuffleDrawer = true
+                                },
+                                onEdit = { onEditList(list.id) },
+                                onLongPress = { listToDelete = list }
+                            )
+                        }
                     }
                 }
             }
@@ -171,6 +311,57 @@ fun HomeScreen(
                             Text("Cancel", color = Color.White)
                         }
                     }
+                )
+            }
+
+            // Import warning dialog
+            if (showImportWarning) {
+                AlertDialog(
+                    onDismissRequest = {
+                        showImportWarning = false
+                        pendingImportUri = null
+                    },
+                    title = {
+                        Text(
+                            text = "Warning",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "Importing data will replace all your current lists and settings. This action cannot be undone. Do you want to continue?",
+                            color = Color.White
+                        )
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                pendingImportUri?.let { uri ->
+                                    performImport(uri)
+                                }
+                                showImportWarning = false
+                                pendingImportUri = null
+                            },
+                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                containerColor = Color.Red
+                            )
+                        ) {
+                            Text("Import", color = Color.White)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                showImportWarning = false
+                                pendingImportUri = null
+                            }
+                        ) {
+                            Text("Cancel", color = Color.White)
+                        }
+                    },
+                    containerColor = Color(0xFF1F1F1F),
+                    shape = RoundedCornerShape(16.dp)
                 )
             }
 
