@@ -525,8 +525,7 @@ fun EditListScreen(
                         EmptyState(themeColor)
                     }
                 } else {
-                    items(items.size, key = { items[it] }) { index ->
-                        val itemValue = items[index]
+                    items(items, key = { it }) { itemValue ->
                         ItemRow(
                             item = itemValue,
                             themeColor = themeColor,
