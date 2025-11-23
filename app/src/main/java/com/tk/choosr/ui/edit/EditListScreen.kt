@@ -269,7 +269,7 @@ fun EditListScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .imePadding()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                            .padding(start = 16.dp, top = 15.dp, end = 16.dp, bottom = 0.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
