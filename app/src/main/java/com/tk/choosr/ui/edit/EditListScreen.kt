@@ -66,6 +66,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
@@ -145,6 +146,8 @@ fun EditListScreen(
     var inputKeyboardAppeared by remember { mutableStateOf(false) }
     val inputFocusRequester = remember { FocusRequester() }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var navigationJob by remember { mutableStateOf<Job?>(null) }
+    var hasNavigated by remember { mutableStateOf(false) }
     
     // Update local items when existing changes (but only if it's actually different)
     LaunchedEffect(existing) {
@@ -241,17 +244,27 @@ fun EditListScreen(
     }
     
     // Handle back button - close keyboard first, then navigate
-    BackHandler {
+    BackHandler(enabled = !hasNavigated && navigationJob == null) {
+        if (hasNavigated) return@BackHandler
+        
+        // Cancel any existing navigation job
+        navigationJob?.cancel()
+        
+        hasNavigated = true
         val isKeyboardVisible = currentImeBottom > 0
         if (isKeyboardVisible) {
             keyboardController?.hide()
             focusManager.clearFocus()
-            scope.launch {
+            navigationJob = scope.launch {
                 delay(150) // Wait for keyboard to close
+                // hasNavigated flag already prevents multiple calls, so safe to navigate
                 onDone()
+                navigationJob = null
             }
         } else {
+            // Navigate immediately
             onDone()
+            navigationJob = null
         }
     }
 
@@ -416,12 +429,20 @@ fun EditListScreen(
                     ) {
                         IconButton(
                             onClick = {
+                                if (hasNavigated) return@IconButton
+                                
+                                // Cancel any existing navigation job
+                                navigationJob?.cancel()
+                                
+                                hasNavigated = true
                                 // Hide keyboard first, then navigate
                                 keyboardController?.hide()
                                 focusManager.clearFocus()
-                                scope.launch {
+                                navigationJob = scope.launch {
                                     delay(150) // Wait for keyboard to close
+                                    // hasNavigated flag already prevents multiple calls, so safe to navigate
                                     onDone()
+                                    navigationJob = null
                                 }
                             },
                             colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)

@@ -39,7 +39,12 @@ fun AppNavHost(
             EditListScreen(
                 viewModel = viewModel,
                 listId = null,
-                onDone = { navController.popBackStack() }
+                onDone = { 
+                    // Only pop if there's a previous destination
+                    if (navController.previousBackStackEntry != null) {
+                        navController.popBackStack()
+                    }
+                }
             )
         }
 
@@ -51,7 +56,12 @@ fun AppNavHost(
             EditListScreen(
                 viewModel = viewModel,
                 listId = listId,
-                onDone = { navController.popBackStack() }
+                onDone = { 
+                    // Only pop if there's a previous destination
+                    if (navController.previousBackStackEntry != null) {
+                        navController.popBackStack()
+                    }
+                }
             )
         }
 
