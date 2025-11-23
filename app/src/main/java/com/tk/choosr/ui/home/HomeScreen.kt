@@ -391,7 +391,7 @@ private fun ListCard(
                     color = Color.White.copy(alpha = 0.7f)
                 )
             }
-            val isEnabled = list.items.isNotEmpty()
+            val isEnabled = list.items.size > 1
             IconButton(
                 onClick = onShuffle, 
                 enabled = isEnabled,
@@ -459,7 +459,7 @@ private fun ListItemRow(
                     color = Color.White.copy(alpha = 0.7f)
                 )
             }
-            val isEnabled = list.items.isNotEmpty()
+            val isEnabled = list.items.size > 1
             IconButton(
                 onClick = onShuffle, 
                 enabled = isEnabled
