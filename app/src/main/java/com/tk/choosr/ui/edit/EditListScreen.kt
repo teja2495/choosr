@@ -148,6 +148,8 @@ fun EditListScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var navigationJob by remember { mutableStateOf<Job?>(null) }
     var hasNavigated by remember { mutableStateOf(false) }
+    var pendingDeletions by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var deletionJobs by remember { mutableStateOf<Map<String, Job>>(emptyMap()) }
     
     // Update local items when existing changes (but only if it's actually different)
     LaunchedEffect(existing) {
@@ -540,14 +542,42 @@ fun EditListScreen(
                     }
                 } else {
                     items(items, key = { it }) { itemValue ->
+                        val isPendingDeletion = pendingDeletions.contains(itemValue)
                         ItemRow(
                             item = itemValue,
                             themeColor = themeColor,
+                            isPendingDeletion = isPendingDeletion,
                             onDelete = {
-                                items = items.filterNot { it == itemValue }
-                                existing?.id?.let { listId ->
-                                    viewModel.removeItem(listId, itemValue)
+                                // Mark as pending deletion
+                                pendingDeletions = pendingDeletions + itemValue
+                                
+                                // Cancel any existing deletion job for this item
+                                deletionJobs[itemValue]?.cancel()
+                                
+                                // Start a new deletion job
+                                val itemToDelete = itemValue // Capture the item value
+                                val job = scope.launch {
+                                    delay(3000) // Wait 3 seconds
+                                    // Only delete if still pending (not undone)
+                                    // Access current state to check if still pending
+                                    val currentPendingDeletions = pendingDeletions
+                                    if (currentPendingDeletions.contains(itemToDelete)) {
+                                        items = items.filterNot { it == itemToDelete }
+                                        existing?.id?.let { listId ->
+                                            viewModel.removeItem(listId, itemToDelete)
+                                        }
+                                        pendingDeletions = pendingDeletions - itemToDelete
+                                        deletionJobs = deletionJobs - itemToDelete
+                                    }
                                 }
+                                deletionJobs = deletionJobs + (itemValue to job)
+                            },
+                            onUndo = {
+                                // Cancel the deletion job
+                                deletionJobs[itemValue]?.cancel()
+                                deletionJobs = deletionJobs - itemValue
+                                // Remove from pending deletions
+                                pendingDeletions = pendingDeletions - itemValue
                             }
                         )
                     }
@@ -745,7 +775,9 @@ private fun ColorPickerDialog(
 private fun ItemRow(
     item: String,
     themeColor: Color,
-    onDelete: () -> Unit
+    isPendingDeletion: Boolean,
+    onDelete: () -> Unit,
+    onUndo: () -> Unit
 ) {
     AnimatedVisibility(
         visible = true,
@@ -767,7 +799,7 @@ private fun ItemRow(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -788,16 +820,29 @@ private fun ItemRow(
                     )
                 }
                 
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Delete item",
-                        tint = Color(0xFF757575),
-                        modifier = Modifier.size(20.dp)
-                    )
+                if (isPendingDeletion) {
+                    TextButton(
+                        onClick = onUndo,
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = "Undo Delete",
+                            color = Color(0xFFFF9800), // Orange color for undo
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                } else {
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete item",
+                            tint = Color(0xFF757575),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
         }
