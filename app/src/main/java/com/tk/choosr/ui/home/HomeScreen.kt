@@ -367,15 +367,16 @@ private fun ListCard(
                     color = Color.White.copy(alpha = 0.7f)
                 )
             }
+            val isEnabled = list.items.isNotEmpty()
             IconButton(
                 onClick = onShuffle, 
-                enabled = list.items.isNotEmpty(),
+                enabled = isEnabled,
                 modifier = Modifier.fillMaxWidth()
             ) { 
                 Icon(
                     painter = painterResource(id = com.tk.choosr.R.drawable.ic_shuffle),
                     contentDescription = "Shuffle",
-                    tint = Color.White,
+                    tint = if (isEnabled) Color.White else Color.White.copy(alpha = 0.4f),
                     modifier = Modifier.size(48.dp)
                 )
             }
