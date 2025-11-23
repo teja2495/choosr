@@ -150,6 +150,7 @@ fun EditListScreen(
     var hasNavigated by remember { mutableStateOf(false) }
     var pendingDeletions by remember { mutableStateOf<Set<String>>(emptySet()) }
     var deletionJobs by remember { mutableStateOf<Map<String, Job>>(emptyMap()) }
+    val scope = rememberCoroutineScope()
     
     // Update local items when existing changes (but only if it's actually different)
     LaunchedEffect(existing) {
@@ -200,8 +201,6 @@ fun EditListScreen(
 
     val themeColor = Color(if (selectedColor == 0xFF1F1F1FL) 0xFFFFFFFF else selectedColor!!)
     val isDefaultColor = selectedColor == 0xFF1F1F1FL
-
-    val scope = rememberCoroutineScope()
     
     // Track keyboard visibility using IME insets
     var previousImeBottom by remember { mutableStateOf(0) }
@@ -282,7 +281,12 @@ fun EditListScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { 
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.padding(bottom = 10.dp)
+            ) 
+        },
         containerColor = Color.Black,
         contentWindowInsets = WindowInsets(0, 0, 0, 0), // Handle manually
         bottomBar = {
@@ -326,9 +330,15 @@ fun EditListScreen(
                             keyboardActions = KeyboardActions(
                                 onDone = {
                                     val candidate = newItem.text.trim()
-                                    if (candidate.isNotEmpty() && items.none { it.equals(candidate, true) }) {
-                                        items = items + candidate
-                                        newItem = TextFieldValue()
+                                    if (candidate.isNotEmpty()) {
+                                        if (items.none { it.equals(candidate, true) }) {
+                                            items = items + candidate
+                                            newItem = TextFieldValue()
+                                        } else {
+                                            scope.launch {
+                                                snackbarHostState.showSnackbar("This item is already in the list")
+                                            }
+                                        }
                                     }
                                 }
                             ),
@@ -354,10 +364,16 @@ fun EditListScreen(
                             IconButton(
                                 onClick = {
                                     val candidate = newItem.text.trim()
-                                    if (candidate.isNotEmpty() && items.none { it.equals(candidate, true) }) {
-                                        items = items + candidate
-                                        newItem = TextFieldValue()
-                                        // Keep keyboard open for rapid entry
+                                    if (candidate.isNotEmpty()) {
+                                        if (items.none { it.equals(candidate, true) }) {
+                                            items = items + candidate
+                                            newItem = TextFieldValue()
+                                            // Keep keyboard open for rapid entry
+                                        } else {
+                                            scope.launch {
+                                                snackbarHostState.showSnackbar("This item is already in the list")
+                                            }
+                                        }
                                     }
                                 },
                                 modifier = Modifier
