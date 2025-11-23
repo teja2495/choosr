@@ -1,6 +1,5 @@
 package com.tk.choosr.ui.home
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -16,7 +15,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -26,13 +24,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -42,7 +38,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,6 +63,7 @@ fun HomeScreen(
     val lists by viewModel.lists.collectAsState()
     var showShuffleDrawer by remember { mutableStateOf(false) }
     var selectedList by remember { mutableStateOf<ChoiceList?>(null) }
+    var listToDelete by remember { mutableStateOf<ChoiceList?>(null) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -109,7 +105,7 @@ fun HomeScreen(
                                 showShuffleDrawer = true
                             },
                             onEdit = { onEditList(list.id) },
-                            onDelete = { viewModel.deleteList(list.id) }
+                            onLongPress = { listToDelete = list }
                         )
                     }
                 }
@@ -124,11 +120,49 @@ fun HomeScreen(
                 )
             }
 
+            // Delete Confirmation Dialog
+            listToDelete?.let { list ->
+                AlertDialog(
+                    onDismissRequest = { listToDelete = null },
+                    title = { 
+                        Text(
+                            "Delete List?",
+                            color = Color.White
+                        ) 
+                    },
+                    text = {
+                        Text(
+                            "Are you sure you want to delete \"${list.name}\"? This action cannot be undone.",
+                            color = Color.White.copy(alpha = 0.7f)
+                        )
+                    },
+                    containerColor = Color(0xFF1E1E1E),
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                viewModel.deleteList(list.id)
+                                listToDelete = null
+                            }
+                        ) {
+                            Text("Delete", color = Color(0xFFFF6B6B))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { listToDelete = null }) {
+                            Text("Cancel", color = Color.White)
+                        }
+                    }
+                )
+            }
+
             // Floating Action Button positioned manually
             ExtendedFloatingActionButton(
                 onClick = onCreateList,
                 icon = {
-                    Icon(Icons.Default.Add, contentDescription = "Add List")
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add List"
+                    )
                 },
                 text = { Text("New List") },
                 containerColor = MaterialTheme.colorScheme.primary,
@@ -146,22 +180,8 @@ private fun ListCard(
     list: ChoiceList,
     onShuffle: () -> Unit,
     onEdit: () -> Unit,
-    onDelete: () -> Unit,
+    onLongPress: () -> Unit,
 ) {
-    var confirmDelete by remember { mutableStateOf(false) }
-
-    if (confirmDelete) {
-        AlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete list?") },
-            text = { Text("This cannot be undone.") },
-            confirmButton = {
-                TextButton(onClick = { confirmDelete = false; onDelete() }) { Text("Delete") }
-            },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } }
-        )
-    }
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -169,7 +189,7 @@ private fun ListCard(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = { onEdit() },
-                    onLongPress = { confirmDelete = true }
+                    onLongPress = { onLongPress() }
                 )
             },
         colors = CardDefaults.cardColors(

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 class ListsViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = PreferencesListRepository(application)
@@ -30,6 +31,13 @@ class ListsViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteList(id: String) = updateLists(_lists.value.filterNot { it.id == id })
         .also { shuffleManager.clear(id) }
+
+    fun deleteListDelayed(id: String, delayMillis: Long = 1000) {
+        viewModelScope.launch {
+            delay(delayMillis)
+            deleteList(id)
+        }
+    }
 
     fun addItem(listId: String, item: String) {
         val trimmed = item.trim()
