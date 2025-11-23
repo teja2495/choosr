@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 
 class ListsViewModel(application: Application) : AndroidViewModel(application) {
@@ -78,7 +79,7 @@ class ListsViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun updateLists(newLists: List<ChoiceList>) {
         _lists.value = newLists
-        viewModelScope.launch { repository.saveLists(newLists) }
+        viewModelScope.launch(Dispatchers.IO) { repository.saveLists(newLists) }
     }
 
     fun exportData(): String {
@@ -88,6 +89,7 @@ class ListsViewModel(application: Application) : AndroidViewModel(application) {
     fun importData(json: String): Boolean {
         val success = repository.importData(json)
         if (success) {
+            shuffleManager.clearAll()
             // Reload data from repository
             _lists.value = repository.loadLists()
             _avoidPreviousResults.value = repository.getAvoidPreviousResults()

@@ -526,13 +526,14 @@ fun EditListScreen(
                     }
                 } else {
                     items(items.size, key = { items[it] }) { index ->
+                        val itemValue = items[index]
                         ItemRow(
-                            item = items[index],
+                            item = itemValue,
                             themeColor = themeColor,
-                            onDelete = { 
-                                items = items.filterNot { it == items[index] }
+                            onDelete = {
+                                items = items.filterNot { it == itemValue }
                                 existing?.id?.let { listId ->
-                                    viewModel.removeItem(listId, items[index])
+                                    viewModel.removeItem(listId, itemValue)
                                 }
                             }
                         )

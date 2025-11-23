@@ -29,6 +29,11 @@ class ShuffleSessionManager {
         queues.remove(listId)
         sizes.remove(listId)
     }
+
+    fun clearAll() {
+        queues.clear()
+        sizes.clear()
+    }
 }
 
 
