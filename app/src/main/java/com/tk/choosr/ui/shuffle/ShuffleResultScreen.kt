@@ -12,10 +12,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -74,8 +80,17 @@ fun ShuffleResultScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Button(onClick = { currentIndex.value = viewModel.nextItemIndex(listId) }, enabled = (list?.items?.isNotEmpty() == true)) {
-                    Text("Choose Again")
+                IconButton(
+                    onClick = { currentIndex.value = viewModel.nextItemIndex(listId) },
+                    enabled = (list?.items?.isNotEmpty() == true),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        painter = painterResource(id = com.tk.choosr.R.drawable.ic_shuffle),
+                        contentDescription = "Shuffle",
+                        tint = Color.White,
+                        modifier = Modifier.size(48.dp)
+                    )
                 }
                 Button(onClick = onDone) { Text("Done") }
             }

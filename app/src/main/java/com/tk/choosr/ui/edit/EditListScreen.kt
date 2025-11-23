@@ -9,7 +9,9 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -380,6 +382,15 @@ fun EditListScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .background(Color.Black)
+                .pointerInput(isTitleFocused) {
+                    detectTapGestures { _ ->
+                        // Clear focus when clicking outside, which will save the name and close keyboard
+                        if (isTitleFocused) {
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
+                        }
+                    }
+                }
         ) {
             Column(
                 modifier = Modifier.fillMaxSize()

@@ -161,11 +161,12 @@ fun HomeScreen(
                 icon = {
                     Icon(
                         Icons.Default.Add,
-                        contentDescription = "Add List"
+                        contentDescription = "Add List",
+                        tint = Color.Black
                     )
                 },
-                text = { Text("New List") },
-                containerColor = MaterialTheme.colorScheme.primary,
+                text = { Text("New List", color = Color.Black) },
+                containerColor = Color.White,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .offset(x = (-8).dp, y = (-48).dp)

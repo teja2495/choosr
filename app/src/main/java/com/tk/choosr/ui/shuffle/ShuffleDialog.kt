@@ -25,13 +25,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.ui.res.painterResource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -211,7 +209,7 @@ fun ShuffleDialog(
 
                 // Action button - centered (only show when not choosing)
                 if (!isChoosing) {
-                    Button(
+                    IconButton(
                         onClick = {
                             isChoosing = true
                             isShowingResult = false
@@ -223,9 +221,15 @@ fun ShuffleDialog(
                                 isShowingResult = true
                             }
                         },
-                        enabled = list?.items?.isNotEmpty() == true
+                        enabled = list?.items?.isNotEmpty() == true,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Choose Again")
+                        Icon(
+                            painter = painterResource(id = com.tk.choosr.R.drawable.ic_shuffle),
+                            contentDescription = "Shuffle",
+                            tint = Color.White,
+                            modifier = Modifier.size(48.dp)
+                        )
                     }
                 }
             }
