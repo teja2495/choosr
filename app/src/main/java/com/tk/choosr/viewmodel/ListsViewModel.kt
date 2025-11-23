@@ -17,10 +17,18 @@ class ListsViewModel(application: Application) : AndroidViewModel(application) {
     private val _lists = MutableStateFlow<List<ChoiceList>>(emptyList())
     val lists: StateFlow<List<ChoiceList>> = _lists.asStateFlow()
 
+    private val _avoidPreviousResults = MutableStateFlow(repository.getAvoidPreviousResults())
+    val avoidPreviousResults: StateFlow<Boolean> = _avoidPreviousResults.asStateFlow()
+
     private val shuffleManager = ShuffleSessionManager()
 
     init {
         _lists.value = repository.loadLists()
+    }
+
+    fun setAvoidPreviousResults(value: Boolean) {
+        _avoidPreviousResults.value = value
+        repository.setAvoidPreviousResults(value)
     }
 
     fun addList(list: ChoiceList) = updateLists(_lists.value + list)
@@ -61,7 +69,11 @@ class ListsViewModel(application: Application) : AndroidViewModel(application) {
     fun nextItemIndex(listId: String): Int? {
         val list = _lists.value.firstOrNull { it.id == listId } ?: return null
         if (list.items.isEmpty()) return null
-        return shuffleManager.nextIndex(listId, list.items.size)
+        return shuffleManager.nextIndex(
+            listId = listId,
+            size = list.items.size,
+            avoidPreviousResults = _avoidPreviousResults.value
+        )
     }
 
     private fun updateLists(newLists: List<ChoiceList>) {

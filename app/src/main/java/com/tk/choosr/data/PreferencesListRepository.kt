@@ -25,9 +25,18 @@ class PreferencesListRepository(
         prefs.edit().putString(KEY_LISTS_V1, json).apply()
     }
 
+    fun getAvoidPreviousResults(): Boolean {
+        return prefs.getBoolean(KEY_AVOID_PREVIOUS_RESULTS, false)
+    }
+
+    fun setAvoidPreviousResults(value: Boolean) {
+        prefs.edit().putBoolean(KEY_AVOID_PREVIOUS_RESULTS, value).apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "choosr_prefs"
         private const val KEY_LISTS_V1 = "lists_v1"
+        private const val KEY_AVOID_PREVIOUS_RESULTS = "avoid_previous_results"
     }
 }
 

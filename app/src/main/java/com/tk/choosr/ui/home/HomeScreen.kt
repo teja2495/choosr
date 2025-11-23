@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.Row
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -59,6 +61,7 @@ fun HomeScreen(
     onCreateList: () -> Unit,
     onEditList: (String) -> Unit,
     onShuffle: (String) -> Unit,
+    onSettings: () -> Unit,
 ) {
     val lists by viewModel.lists.collectAsState()
     var showShuffleDrawer by remember { mutableStateOf(false) }
@@ -79,16 +82,32 @@ fun HomeScreen(
             androidx.compose.foundation.layout.Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // Custom title with minimal padding
-                Text(
-                    text = "Choosr",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                // Custom title with settings icon
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 16.dp, top = 4.dp, bottom = 16.dp)
-                )
+                        .padding(start = 16.dp, top = 4.dp, bottom = 16.dp, end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Choosr",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    IconButton(
+                        onClick = onSettings,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
                 
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),

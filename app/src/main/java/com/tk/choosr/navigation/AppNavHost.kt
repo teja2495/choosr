@@ -11,6 +11,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tk.choosr.ui.edit.EditListScreen
 import com.tk.choosr.ui.home.HomeScreen
+import com.tk.choosr.ui.settings.SettingsScreen
 import com.tk.choosr.viewmodel.ListsViewModel
 
 @Composable
@@ -28,7 +29,8 @@ fun AppNavHost(
                 snackbarHostState = snackbarHostState,
                 onCreateList = { navController.navigate("${Routes.Edit}") },
                 onEditList = { id -> navController.navigate("${Routes.Edit}/$id") },
-                onShuffle = { id -> /* No longer needed - handled by drawer */ }
+                onShuffle = { id -> /* No longer needed - handled by drawer */ },
+                onSettings = { navController.navigate(Routes.Settings) }
             )
         }
 
@@ -50,6 +52,13 @@ fun AppNavHost(
                 viewModel = viewModel,
                 listId = listId,
                 onDone = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.Settings) {
+            SettingsScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() }
             )
         }
 
