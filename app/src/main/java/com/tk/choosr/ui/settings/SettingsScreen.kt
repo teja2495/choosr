@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,7 +25,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -37,7 +34,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,6 +42,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.tk.choosr.ui.components.ImportWarningDialog
+import com.tk.choosr.util.rememberBackupManager
 import com.tk.choosr.viewmodel.ListsViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -62,6 +60,7 @@ fun SettingsScreen(
     val lists by viewModel.lists.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val backupManager = rememberBackupManager(viewModel, snackbarHostState)
     var showImportWarning by remember { mutableStateOf(false) }
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
     
@@ -76,54 +75,13 @@ fun SettingsScreen(
         contract = ActivityResultContracts.CreateDocument("application/octet-stream")
     ) { uri: Uri? ->
         uri?.let {
-            try {
-                context.contentResolver.openOutputStream(it)?.use { outputStream ->
-                    val exportData = viewModel.exportData()
-                    outputStream.write(exportData.toByteArray())
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            backupManager.exportBackup(scope, it)
         }
     }
 
     fun getExportFileName(): String {
         val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
         return "choosr_backup_$timestamp.choosr"
-    }
-
-    // Helper function to perform import
-    fun performImport(uri: Uri) {
-        scope.launch {
-            try {
-                val inputStream = context.contentResolver.openInputStream(uri)
-                if (inputStream == null) {
-                    snackbarHostState.showSnackbar("Failed to open file")
-                    return@launch
-                }
-                
-                inputStream.use { stream ->
-                    val json = stream.bufferedReader().use { it.readText() }
-                    if (json.isBlank()) {
-                        snackbarHostState.showSnackbar("File is empty")
-                        return@launch
-                    }
-                    
-                    val success = viewModel.importData(json)
-                    if (success) {
-                        snackbarHostState.showSnackbar("Data imported successfully")
-                    } else {
-                        snackbarHostState.showSnackbar("Invalid file format")
-                    }
-                }
-            } catch (e: SecurityException) {
-                android.util.Log.e("SettingsScreen", "Security error importing file", e)
-                snackbarHostState.showSnackbar("Permission denied. Please try again.")
-            } catch (e: Exception) {
-                android.util.Log.e("SettingsScreen", "Error importing file", e)
-                snackbarHostState.showSnackbar("Error importing file: ${e.message}")
-            }
-        }
     }
 
     // Import launcher - accept any file, validate during import
@@ -144,7 +102,7 @@ fun SettingsScreen(
             
             // If there are no existing lists, import directly without warning
             if (lists.isEmpty()) {
-                performImport(it)
+                backupManager.importBackup(scope, it, logTag = "SettingsScreen")
             } else {
                 // Show warning if there are existing lists
                 pendingImportUri = it
@@ -305,55 +263,19 @@ fun SettingsScreen(
         }
     }
 
-    // Import warning dialog
-    if (showImportWarning) {
-        AlertDialog(
-            onDismissRequest = {
-                showImportWarning = false
-                pendingImportUri = null
-            },
-            title = {
-                Text(
-                    text = "Warning",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Text(
-                    text = "Importing data will replace all your current lists and settings. This action cannot be undone. Do you want to continue?",
-                    color = Color.White
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        pendingImportUri?.let { uri ->
-                            performImport(uri)
-                        }
-                        showImportWarning = false
-                        pendingImportUri = null
-                    },
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                        containerColor = Color.Red
-                    )
-                ) {
-                    Text("Import", color = Color.White)
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showImportWarning = false
-                        pendingImportUri = null
-                    }
-                ) {
-                    Text("Cancel", color = Color.White)
-                }
-            },
-            containerColor = Color(0xFF1F1F1F),
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
+    ImportWarningDialog(
+        visible = showImportWarning,
+        onConfirm = {
+            pendingImportUri?.let { uri ->
+                backupManager.importBackup(scope, uri, logTag = "SettingsScreen")
+            }
+            showImportWarning = false
+            pendingImportUri = null
+        },
+        onDismiss = {
+            showImportWarning = false
+            pendingImportUri = null
+        }
+    )
 }
 

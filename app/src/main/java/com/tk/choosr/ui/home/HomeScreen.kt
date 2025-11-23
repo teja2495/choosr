@@ -29,14 +29,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -64,8 +62,10 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.foundation.text.ClickableText
 import com.tk.choosr.data.ChoiceList
-import com.tk.choosr.viewmodel.ListsViewModel
+import com.tk.choosr.ui.components.ImportWarningDialog
 import com.tk.choosr.ui.shuffle.ShuffleDialog
+import com.tk.choosr.util.rememberBackupManager
+import com.tk.choosr.viewmodel.ListsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,39 +86,7 @@ fun HomeScreen(
     var showImportWarning by remember { mutableStateOf(false) }
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
     
-    // Helper function to perform import
-    fun performImport(uri: Uri) {
-        scope.launch {
-            try {
-                val inputStream = context.contentResolver.openInputStream(uri)
-                if (inputStream == null) {
-                    snackbarHostState.showSnackbar("Failed to open file")
-                    return@launch
-                }
-                
-                inputStream.use { stream ->
-                    val json = stream.bufferedReader().use { it.readText() }
-                    if (json.isBlank()) {
-                        snackbarHostState.showSnackbar("File is empty")
-                        return@launch
-                    }
-                    
-                    val success = viewModel.importData(json)
-                    if (success) {
-                        snackbarHostState.showSnackbar("Data imported successfully")
-                    } else {
-                        snackbarHostState.showSnackbar("Invalid file format")
-                    }
-                }
-            } catch (e: SecurityException) {
-                android.util.Log.e("HomeScreen", "Security error importing file", e)
-                snackbarHostState.showSnackbar("Permission denied. Please try again.")
-            } catch (e: Exception) {
-                android.util.Log.e("HomeScreen", "Error importing file", e)
-                snackbarHostState.showSnackbar("Error importing file: ${e.message}")
-            }
-        }
-    }
+    val backupManager = rememberBackupManager(viewModel, snackbarHostState)
 
     // Import launcher - accept any file, validate during import
     val importLauncher = rememberLauncherForActivityResult(
@@ -138,7 +106,7 @@ fun HomeScreen(
             
             // If there are no existing lists, import directly without warning
             if (lists.isEmpty()) {
-                performImport(it)
+                backupManager.importBackup(scope, it, logTag = "HomeScreen")
             } else {
                 // Show warning if there are existing lists
                 pendingImportUri = it
@@ -315,55 +283,20 @@ fun HomeScreen(
             }
 
             // Import warning dialog
-            if (showImportWarning) {
-                AlertDialog(
-                    onDismissRequest = {
-                        showImportWarning = false
-                        pendingImportUri = null
-                    },
-                    title = {
-                        Text(
-                            text = "Warning",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    text = {
-                        Text(
-                            text = "Importing data will replace all your current lists and settings. This action cannot be undone. Do you want to continue?",
-                            color = Color.White
-                        )
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                pendingImportUri?.let { uri ->
-                                    performImport(uri)
-                                }
-                                showImportWarning = false
-                                pendingImportUri = null
-                            },
-                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                                containerColor = Color.Red
-                            )
-                        ) {
-                            Text("Import", color = Color.White)
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(
-                            onClick = {
-                                showImportWarning = false
-                                pendingImportUri = null
-                            }
-                        ) {
-                            Text("Cancel", color = Color.White)
-                        }
-                    },
-                    containerColor = Color(0xFF1F1F1F),
-                    shape = RoundedCornerShape(16.dp)
-                )
-            }
+            ImportWarningDialog(
+                visible = showImportWarning,
+                onConfirm = {
+                    pendingImportUri?.let { uri ->
+                        backupManager.importBackup(scope, uri, logTag = "HomeScreen")
+                    }
+                    showImportWarning = false
+                    pendingImportUri = null
+                },
+                onDismiss = {
+                    showImportWarning = false
+                    pendingImportUri = null
+                }
+            )
 
             // Floating Action Button positioned manually
             ExtendedFloatingActionButton(
