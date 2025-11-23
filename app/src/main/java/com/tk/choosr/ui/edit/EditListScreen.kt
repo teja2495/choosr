@@ -162,28 +162,36 @@ fun EditListScreen(
         }
     }
 
+    // Helper function to save the list
+    val saveList: () -> Unit = {
+        val trimmedName = name.trim()
+        if (trimmedName.isNotEmpty()) {
+            val list = (existing?.copy(name = trimmedName, items = items, colorArgb = selectedColor))
+                ?: ChoiceList(name = trimmedName, items = items, colorArgb = selectedColor)
+            if (existing == null && createdListId == null) {
+                // First time creating this list
+                viewModel.addList(list)
+                createdListId = list.id
+            } else if (existing == null && createdListId != null) {
+                // Updating a newly created list (before navigating back)
+                viewModel.updateList(list.copy(id = createdListId!!))
+            } else {
+                // Updating existing list
+                viewModel.updateList(list)
+            }
+        }
+    }
+
     // Auto-save functionality
     LaunchedEffect(name, items, selectedColor) {
         val trimmedName = name.trim()
-        if (trimmedName.isNotEmpty() && items.isNotEmpty()) {
+        if (trimmedName.isNotEmpty()) {
             // Only save if this is actually a change from what's in the ViewModel
             val currentItems = existing?.items ?: emptyList()
             val currentName = existing?.name ?: ""
             val currentColor = existing?.colorArgb
             if (items != currentItems || trimmedName != currentName || selectedColor != currentColor) {
-                val list = (existing?.copy(name = trimmedName, items = items, colorArgb = selectedColor))
-                    ?: ChoiceList(name = trimmedName, items = items, colorArgb = selectedColor)
-                if (existing == null && createdListId == null) {
-                    // First time creating this list
-                    viewModel.addList(list)
-                    createdListId = list.id
-                } else if (existing == null && createdListId != null) {
-                    // Updating a newly created list (before navigating back)
-                    viewModel.updateList(list.copy(id = createdListId!!))
-                } else {
-                    // Updating existing list
-                    viewModel.updateList(list)
-                }
+                saveList()
             }
         }
     }
@@ -249,6 +257,9 @@ fun EditListScreen(
         
         // Cancel any existing navigation job
         navigationJob?.cancel()
+        
+        // Save the list if it has a name (even if no items)
+        saveList()
         
         hasNavigated = true
         val isKeyboardVisible = currentImeBottom > 0
@@ -433,6 +444,9 @@ fun EditListScreen(
                                 
                                 // Cancel any existing navigation job
                                 navigationJob?.cancel()
+                                
+                                // Save the list if it has a name (even if no items)
+                                saveList()
                                 
                                 hasNavigated = true
                                 // Hide keyboard first, then navigate
