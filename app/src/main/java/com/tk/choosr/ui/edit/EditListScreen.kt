@@ -261,7 +261,7 @@ fun EditListScreen(
             if (showInputSection) {
                 // Input Bar (shown when FAB is clicked)
                 Surface(
-                    color = Color(0xFF1E1E1E),
+                    color = Color.Black,
                     tonalElevation = 8.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
