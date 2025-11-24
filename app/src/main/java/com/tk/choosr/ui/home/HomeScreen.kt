@@ -385,8 +385,13 @@ private fun ListCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+                val itemCountText = when (list.items.size) {
+                    0 -> "Add items"
+                    1 -> "Add more items"
+                    else -> "${list.items.size} items"
+                }
                 Text(
-                    text = "${list.items.size} items", 
+                    text = itemCountText, 
                     style = MaterialTheme.typography.bodySmall, 
                     color = Color.White.copy(alpha = 0.7f)
                 )
@@ -453,8 +458,13 @@ private fun ListItemRow(
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.size(4.dp))
+                val itemCountText = when (list.items.size) {
+                    0 -> "Add items"
+                    1 -> "Add more items"
+                    else -> "${list.items.size} items"
+                }
                 Text(
-                    text = "${list.items.size} items", 
+                    text = itemCountText, 
                     style = MaterialTheme.typography.bodySmall, 
                     color = Color.White.copy(alpha = 0.7f)
                 )
