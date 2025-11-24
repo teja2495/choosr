@@ -603,6 +603,7 @@ fun EditListScreen(
             
             // Floating Action Button
             if (!showInputSection) {
+                val isKeyboardOpen = currentImeBottom > 0
                 ExtendedFloatingActionButton(
                     onClick = { showInputSection = true },
                     icon = {
@@ -621,7 +622,8 @@ fun EditListScreen(
                     containerColor = themeColor,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(end = 24.dp, bottom = 60.dp)
+                        .imePadding()
+                        .padding(end = 24.dp, bottom = if (isKeyboardOpen) 16.dp else 60.dp)
                 )
             }
         }
