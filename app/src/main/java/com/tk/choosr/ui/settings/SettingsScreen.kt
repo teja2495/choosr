@@ -280,7 +280,7 @@ fun SettingsScreen(
                         )
                         Spacer(modifier = Modifier.size(4.dp))
                         Text(
-                            text = "Export all your lists and settings.",
+                            text = "Export all your lists and settings",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.7f)
                         )
