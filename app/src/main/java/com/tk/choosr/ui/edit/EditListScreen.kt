@@ -96,18 +96,18 @@ import com.tk.choosr.data.ChoiceList
 import com.tk.choosr.viewmodel.ListsViewModel
 
 private val COLOR_OPTIONS = listOf(
-    0xFFD4A017L, // Gold (default)
-    0xFFD32F2FL, // Red
-    0xFF1976D2L, // Blue
-    0xFF388E3CL, // Green
-    0xFFF57C00L, // Orange
-    0xFF7B1FA2L, // Purple
-    0xFF0288D1L, // Light Blue
-    0xFF00897BL, // Teal
-    0xFFE64A19L, // Deep Orange
-    0xFF5C6BC0L, // Indigo
-    0xFF558B2FL, // Light Green
-    0xFFAD1457L, // Pink
+    0xFFB48813L, // Gold (default)
+    0xFFB22828L, // Red
+    0xFF1563B1L, // Blue
+    0xFF2F7833L, // Green
+    0xFFCF6900L, // Orange
+    0xFF691A8AL, // Purple
+    0xFF0273B1L, // Light Blue
+    0xFF007482L, // Teal
+    0xFFC33F15L, // Deep Orange
+    0xFF4E5AA2L, // Indigo
+    0xFF487627L, // Light Green
+    0xFF92114AL, // Pink
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
