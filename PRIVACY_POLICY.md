@@ -1,6 +1,6 @@
 # Privacy Policy for Choosr
 
-**Last Updated:** [Date]
+**Last Updated:** 11/24/2025
 
 ## Introduction
 
