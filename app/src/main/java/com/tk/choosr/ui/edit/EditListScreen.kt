@@ -610,13 +610,13 @@ fun EditListScreen(
                         Icon(
                             Icons.Default.Add,
                             contentDescription = "Add Item",
-                            tint = Color.Black
+                            tint = if (isDefaultColor) Color.Black else Color.White
                         )
                     },
                     text = { 
                         Text(
                             "Add Item",
-                            color = Color.Black
+                            color = if (isDefaultColor) Color.Black else Color.White
                         ) 
                     },
                     containerColor = themeColor,
