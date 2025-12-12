@@ -2,7 +2,9 @@
 
 Choosr was built for people who hate decision fatigue. Create lists, add items, and tap the shuffle icon to let the app pick one for you. It's fast, clean, and focused on one job: helping you decide without overthinking.
 
-[![Get it on Google Play](https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png)](https://play.google.com/store/apps/details?id=com.tk.choosr)
+<a href="https://play.google.com/store/apps/details?id=com.tk.choosr">
+  <img alt="Get it on Google Play" src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" width="200"/>
+</a>
 
 ## Features
 
