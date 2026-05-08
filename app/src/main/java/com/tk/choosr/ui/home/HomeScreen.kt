@@ -15,8 +15,12 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -42,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -69,6 +74,8 @@ import com.tk.choosr.ui.components.ImportWarningDialog
 import com.tk.choosr.ui.shuffle.ShuffleDialog
 import com.tk.choosr.util.rememberBackupManager
 import com.tk.choosr.viewmodel.ListsViewModel
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,12 +92,24 @@ fun HomeScreen(
     var showShuffleDrawer by remember { mutableStateOf(false) }
     var selectedList by remember { mutableStateOf<ChoiceList?>(null) }
     var listToDelete by remember { mutableStateOf<ChoiceList?>(null) }
+    var editMode by remember { mutableStateOf(false) }
+    var orderedLists by remember { mutableStateOf(lists) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val lazyListState = rememberLazyListState()
+    val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
+        orderedLists = orderedLists.toMutableList().apply {
+            add(to.index, removeAt(from.index))
+        }
+    }
     var showImportWarning by remember { mutableStateOf(false) }
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
     
     val backupManager = rememberBackupManager(viewModel, snackbarHostState)
+
+    LaunchedEffect(lists, editMode) {
+        if (!editMode) orderedLists = lists
+    }
 
     // Import launcher - accept any file, validate during import
     val importLauncher = rememberLauncherForActivityResult(
@@ -220,22 +239,39 @@ fun HomeScreen(
                         }
                     }
                 } else {
-                    if (viewType == "list") {
+                    if (viewType == "list" || editMode) {
                         LazyColumn(
+                            state = lazyListState,
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 150.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            items(lists, key = { it.id }) { list ->
-                                ListItemRow(
-                                    list = list,
-                                    onShuffle = { 
-                                        selectedList = list
-                                        showShuffleDrawer = true
-                                    },
-                                    onEdit = { onEditList(list.id) },
-                                    onLongPress = { listToDelete = list }
-                                )
+                            items(orderedLists, key = { it.id }) { list ->
+                                if (editMode) {
+                                    ReorderableItem(reorderableLazyListState, key = list.id) {
+                                        ListItemRow(
+                                            list = list,
+                                            isEditMode = true,
+                                            onShuffle = {},
+                                            onEdit = {},
+                                            onLongPress = {},
+                                            onDelete = { listToDelete = list },
+                                            dragHandleModifier = Modifier.longPressDraggableHandle()
+                                        )
+                                    }
+                                } else {
+                                    ListItemRow(
+                                        list = list,
+                                        isEditMode = false,
+                                        onShuffle = {
+                                            selectedList = list
+                                            showShuffleDrawer = true
+                                        },
+                                        onEdit = { onEditList(list.id) },
+                                        onLongPress = { editMode = true },
+                                        onDelete = {}
+                                    )
+                                }
                             }
                         }
                     } else {
@@ -249,12 +285,14 @@ fun HomeScreen(
                             items(lists, key = { it.id }) { list ->
                                 ListCard(
                                     list = list,
+                                    isEditMode = editMode,
                                     onShuffle = { 
                                         selectedList = list
                                         showShuffleDrawer = true
                                     },
                                     onEdit = { onEditList(list.id) },
-                                    onLongPress = { listToDelete = list }
+                                    onLongPress = { editMode = true },
+                                    onDelete = { listToDelete = list }
                                 )
                             }
                         }
@@ -324,15 +362,30 @@ fun HomeScreen(
 
             // Floating Action Button positioned manually
             ExtendedFloatingActionButton(
-                onClick = onCreateList,
-                icon = {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = "Add List",
-                        tint = Color.Black
-                    )
+                onClick = {
+                    if (editMode) {
+                        viewModel.reorderLists(orderedLists)
+                        editMode = false
+                    } else {
+                        onCreateList()
+                    }
                 },
-                text = { Text("New List", color = Color.Black) },
+                icon = {
+                    if (editMode) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Done",
+                            tint = Color.Black
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Add List",
+                            tint = Color.Black
+                        )
+                    }
+                },
+                text = { Text(if (editMode) "Done" else "New List", color = Color.Black) },
                 containerColor = Color.White,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -346,9 +399,11 @@ fun HomeScreen(
 @Composable
 private fun ListCard(
     list: ChoiceList,
+    isEditMode: Boolean,
     onShuffle: () -> Unit,
     onEdit: () -> Unit,
     onLongPress: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     Card(
         modifier = Modifier
@@ -397,17 +452,31 @@ private fun ListCard(
                 )
             }
             val isEnabled = list.items.size > 1
-            IconButton(
-                onClick = onShuffle, 
-                enabled = isEnabled,
-                modifier = Modifier.fillMaxWidth()
-            ) { 
-                Icon(
-                    painter = painterResource(id = com.tk.choosr.R.drawable.ic_shuffle),
-                    contentDescription = "Shuffle",
-                    tint = if (isEnabled) Color.White else Color.White.copy(alpha = 0.4f),
-                    modifier = Modifier.size(48.dp)
-                )
+            if (isEditMode) {
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = Color(0xFFE07A7A),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            } else {
+                IconButton(
+                    onClick = onShuffle,
+                    enabled = isEnabled,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        painter = painterResource(id = com.tk.choosr.R.drawable.ic_shuffle),
+                        contentDescription = "Shuffle",
+                        tint = if (isEnabled) Color.White else Color.White.copy(alpha = 0.4f),
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
             }
         }
     }
@@ -416,17 +485,20 @@ private fun ListCard(
 @Composable
 private fun ListItemRow(
     list: ChoiceList,
+    isEditMode: Boolean,
     onShuffle: () -> Unit,
     onEdit: () -> Unit,
     onLongPress: () -> Unit,
+    onDelete: () -> Unit,
+    dragHandleModifier: Modifier = Modifier,
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .pointerInput(Unit) {
+            .pointerInput(isEditMode) {
                 detectTapGestures(
-                    onTap = { onEdit() },
-                    onLongPress = { onLongPress() }
+                    onTap = { if (!isEditMode) onEdit() },
+                    onLongPress = { if (!isEditMode) onLongPress() }
                 )
             },
         colors = CardDefaults.cardColors(
@@ -443,6 +515,16 @@ private fun ListItemRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            if (isEditMode) {
+                Icon(
+                    imageVector = Icons.Default.DragHandle,
+                    contentDescription = "Reorder",
+                    tint = Color.White.copy(alpha = 0.75f),
+                    modifier = dragHandleModifier
+                        .padding(end = 8.dp)
+                        .size(22.dp)
+                )
+            }
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -469,20 +551,29 @@ private fun ListItemRow(
                     color = Color.White.copy(alpha = 0.7f)
                 )
             }
-            val isEnabled = list.items.size > 1
-            IconButton(
-                onClick = onShuffle, 
-                enabled = isEnabled
-            ) { 
-                Icon(
-                    painter = painterResource(id = com.tk.choosr.R.drawable.ic_shuffle),
-                    contentDescription = "Shuffle",
-                    tint = if (isEnabled) Color.White else Color.White.copy(alpha = 0.4f),
-                    modifier = Modifier.size(48.dp)
-                )
+            if (isEditMode) {
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = Color(0xFFE07A7A),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            } else {
+                val isEnabled = list.items.size > 1
+                IconButton(
+                    onClick = onShuffle,
+                    enabled = isEnabled
+                ) {
+                    Icon(
+                        painter = painterResource(id = com.tk.choosr.R.drawable.ic_shuffle),
+                        contentDescription = "Shuffle",
+                        tint = if (isEnabled) Color.White else Color.White.copy(alpha = 0.4f),
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
             }
         }
     }
 }
-
-

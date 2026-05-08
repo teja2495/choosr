@@ -49,6 +49,14 @@ class ListsViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteList(id: String) = updateLists(_lists.value.filterNot { it.id == id })
         .also { shuffleManager.clear(id) }
 
+    fun reorderLists(newOrder: List<ChoiceList>) {
+        val currentIds = _lists.value.map { it.id }
+        val newIds = newOrder.map { it.id }
+        if (currentIds.size != newIds.size) return
+        if (currentIds.toSet() != newIds.toSet()) return
+        updateLists(newOrder)
+    }
+
     fun deleteListDelayed(id: String, delayMillis: Long = 1000) {
         viewModelScope.launch {
             delay(delayMillis)
@@ -106,5 +114,3 @@ class ListsViewModel(application: Application) : AndroidViewModel(application) {
         return success
     }
 }
-
-

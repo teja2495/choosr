@@ -12,8 +12,8 @@ android {
         applicationId = "com.tk.choosr"
         minSdk = 24
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.0"
+        versionCode = 3
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -54,6 +54,7 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.animation)
+    implementation(libs.reorderable)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

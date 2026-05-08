@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -94,6 +95,8 @@ import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.platform.LocalDensity
 import com.tk.choosr.data.ChoiceList
 import com.tk.choosr.viewmodel.ListsViewModel
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 private val COLOR_OPTIONS = listOf(
     0xFFB48813L, // Gold (default)
@@ -151,6 +154,12 @@ fun EditListScreen(
     var pendingDeletions by remember { mutableStateOf<Set<String>>(emptySet()) }
     var deletionJobs by remember { mutableStateOf<Map<String, Job>>(emptyMap()) }
     val scope = rememberCoroutineScope()
+    val lazyListState = rememberLazyListState()
+    val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
+        items = items.toMutableList().apply {
+            add(to.index, removeAt(from.index))
+        }
+    }
     
     // Update local items when existing changes (but only if it's actually different)
     LaunchedEffect(existing) {
@@ -549,6 +558,7 @@ fun EditListScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
+                state = lazyListState,
                 contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 140.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -558,44 +568,47 @@ fun EditListScreen(
                     }
                 } else {
                     items(items, key = { it }) { itemValue ->
-                        val isPendingDeletion = pendingDeletions.contains(itemValue)
-                        ItemRow(
-                            item = itemValue,
-                            themeColor = themeColor,
-                            isPendingDeletion = isPendingDeletion,
-                            onDelete = {
-                                // Mark as pending deletion
-                                pendingDeletions = pendingDeletions + itemValue
-                                
-                                // Cancel any existing deletion job for this item
-                                deletionJobs[itemValue]?.cancel()
-                                
-                                // Start a new deletion job
-                                val itemToDelete = itemValue // Capture the item value
-                                val job = scope.launch {
-                                    delay(3000) // Wait 3 seconds
-                                    // Only delete if still pending (not undone)
-                                    // Access current state to check if still pending
-                                    val currentPendingDeletions = pendingDeletions
-                                    if (currentPendingDeletions.contains(itemToDelete)) {
-                                        items = items.filterNot { it == itemToDelete }
-                                        existing?.id?.let { listId ->
-                                            viewModel.removeItem(listId, itemToDelete)
+                        ReorderableItem(reorderableLazyListState, key = itemValue) {
+                            val isPendingDeletion = pendingDeletions.contains(itemValue)
+                            ItemRow(
+                                item = itemValue,
+                                themeColor = themeColor,
+                                isPendingDeletion = isPendingDeletion,
+                                onDelete = {
+                                    // Mark as pending deletion
+                                    pendingDeletions = pendingDeletions + itemValue
+
+                                    // Cancel any existing deletion job for this item
+                                    deletionJobs[itemValue]?.cancel()
+
+                                    // Start a new deletion job
+                                    val itemToDelete = itemValue // Capture the item value
+                                    val job = scope.launch {
+                                        delay(3000) // Wait 3 seconds
+                                        // Only delete if still pending (not undone)
+                                        // Access current state to check if still pending
+                                        val currentPendingDeletions = pendingDeletions
+                                        if (currentPendingDeletions.contains(itemToDelete)) {
+                                            items = items.filterNot { it == itemToDelete }
+                                            existing?.id?.let { listId ->
+                                                viewModel.removeItem(listId, itemToDelete)
+                                            }
+                                            pendingDeletions = pendingDeletions - itemToDelete
+                                            deletionJobs = deletionJobs - itemToDelete
                                         }
-                                        pendingDeletions = pendingDeletions - itemToDelete
-                                        deletionJobs = deletionJobs - itemToDelete
                                     }
-                                }
-                                deletionJobs = deletionJobs + (itemValue to job)
-                            },
-                            onUndo = {
-                                // Cancel the deletion job
-                                deletionJobs[itemValue]?.cancel()
-                                deletionJobs = deletionJobs - itemValue
-                                // Remove from pending deletions
-                                pendingDeletions = pendingDeletions - itemValue
-                            }
-                        )
+                                    deletionJobs = deletionJobs + (itemValue to job)
+                                },
+                                onUndo = {
+                                    // Cancel the deletion job
+                                    deletionJobs[itemValue]?.cancel()
+                                    deletionJobs = deletionJobs - itemValue
+                                    // Remove from pending deletions
+                                    pendingDeletions = pendingDeletions - itemValue
+                                },
+                                modifier = Modifier.longPressDraggableHandle()
+                            )
+                        }
                     }
                 }
             }
@@ -795,7 +808,8 @@ private fun ItemRow(
     themeColor: Color,
     isPendingDeletion: Boolean,
     onDelete: () -> Unit,
-    onUndo: () -> Unit
+    onUndo: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     AnimatedVisibility(
         visible = true,
@@ -809,7 +823,7 @@ private fun ItemRow(
         ) + fadeOut(animationSpec = tween(300))
     ) {
         Surface(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = modifier.fillMaxWidth(),
             color = Color(0xFF1E1E1E),
             shape = RoundedCornerShape(12.dp),
             onClick = {} // Capture clicks
