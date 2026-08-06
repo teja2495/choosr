@@ -47,6 +47,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -109,6 +110,11 @@ fun HomeScreen(
 
     LaunchedEffect(lists, editMode) {
         if (!editMode) orderedLists = lists
+    }
+
+    BackHandler(enabled = editMode) {
+        viewModel.reorderLists(orderedLists)
+        editMode = false
     }
 
     // Import launcher - accept any file, validate during import

@@ -40,7 +40,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Palette
@@ -48,8 +47,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -144,10 +141,6 @@ fun EditListScreen(
     var isTitleFocused by remember { mutableStateOf(false) }
     var keyboardAppearedSinceLastFocused by remember { mutableStateOf(false) }
     val density = LocalDensity.current
-    var showInputSection by remember { mutableStateOf(false) }
-    var isInputFocused by remember { mutableStateOf(false) }
-    var inputKeyboardAppeared by remember { mutableStateOf(false) }
-    val inputFocusRequester = remember { FocusRequester() }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var navigationJob by remember { mutableStateOf<Job?>(null) }
     var hasNavigated by remember { mutableStateOf(false) }
@@ -230,29 +223,6 @@ fun EditListScreen(
         previousImeBottom = currentImeBottom
     }
     
-    // Hide input section when keyboard is dismissed
-    LaunchedEffect(currentImeBottom, isInputFocused, showInputSection) {
-        if (isInputFocused && showInputSection) {
-            if (currentImeBottom > 0) {
-                inputKeyboardAppeared = true
-            } else if (inputKeyboardAppeared && previousImeBottom > 0) {
-                // Keyboard was just dismissed - hide input section
-                delay(50)
-                showInputSection = false
-                inputKeyboardAppeared = false
-                newItem = TextFieldValue() // Clear the input
-            }
-        }
-    }
-    
-    // Auto-focus input field when input section is shown
-    LaunchedEffect(showInputSection) {
-        if (showInputSection) {
-            delay(100) // Small delay to ensure the input field is rendered
-            inputFocusRequester.requestFocus()
-        }
-    }
-    
     // Auto-focus list name input when there's no list name
     LaunchedEffect(existing?.id) {
         if (name.isEmpty()) {
@@ -299,9 +269,7 @@ fun EditListScreen(
         containerColor = Color.Black,
         contentWindowInsets = WindowInsets(0, 0, 0, 0), // Handle manually
         bottomBar = {
-            if (showInputSection) {
-                // Input Bar (shown when FAB is clicked)
-                Surface(
+            Surface(
                     color = Color.Black,
                     tonalElevation = 8.dp,
                     modifier = Modifier.fillMaxWidth()
@@ -310,7 +278,12 @@ fun EditListScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .imePadding()
-                            .padding(start = 16.dp, top = 15.dp, end = 16.dp, bottom = 0.dp),
+                            .padding(
+                                start = 16.dp,
+                                top = 15.dp,
+                                end = 16.dp,
+                                bottom = if (currentImeBottom == 0) 16.dp else 0.dp
+                            ),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
@@ -321,11 +294,7 @@ fun EditListScreen(
                                 .weight(1f)
                                 .height(48.dp)
                                 .background(Color(0xFF2C2C2C), RoundedCornerShape(24.dp))
-                                .padding(horizontal = 16.dp, vertical = 12.dp)
-                                .focusRequester(inputFocusRequester)
-                                .onFocusEvent { focusState ->
-                                    isInputFocused = focusState.isFocused
-                                },
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                             textStyle = TextStyle(
                                 color = Color.White,
                                 fontSize = 16.sp
@@ -368,9 +337,7 @@ fun EditListScreen(
                             }
                         )
                         
-                        // Show Add button only when there's text
-                        if (newItem.text.isNotEmpty()) {
-                            IconButton(
+                        IconButton(
                                 onClick = {
                                     val candidate = newItem.text.trim()
                                     if (candidate.isNotEmpty()) {
@@ -398,35 +365,9 @@ fun EditListScreen(
                                     tint = Color.Black
                                 )
                             }
-                        }
-                        
-                        // Show Close button only when field is empty
-                        if (newItem.text.isEmpty()) {
-                            IconButton(
-                                onClick = {
-                                    showInputSection = false
-                                    newItem = TextFieldValue()
-                                    keyboardController?.hide()
-                                    focusManager.clearFocus()
-                                },
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(
-                                        color = Color(0xFF2C2C2C),
-                                        shape = CircleShape
-                                    )
-                            ) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = "Close",
-                                    tint = Color.Gray
-                                )
-                            }
-                        }
                     }
                 }
-            }
-        }
+        },
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -614,31 +555,6 @@ fun EditListScreen(
             }
         }
             
-            // Floating Action Button
-            if (!showInputSection) {
-                val isKeyboardOpen = currentImeBottom > 0
-                ExtendedFloatingActionButton(
-                    onClick = { showInputSection = true },
-                    icon = {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = "Add Item",
-                            tint = if (isDefaultColor) Color.Black else Color.White
-                        )
-                    },
-                    text = { 
-                        Text(
-                            "Add Item",
-                            color = if (isDefaultColor) Color.Black else Color.White
-                        ) 
-                    },
-                    containerColor = themeColor,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .imePadding()
-                        .padding(end = 24.dp, bottom = if (isKeyboardOpen) 16.dp else 60.dp)
-                )
-            }
         }
     }
     
@@ -725,7 +641,7 @@ private fun EmptyState(themeColor: Color) {
                 color = Color.White
             )
             Text(
-                text = "Add items using the Add Item button below",
+                text = "Add items using the input below",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.Gray,
                 textAlign = TextAlign.Center

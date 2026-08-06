@@ -21,6 +21,9 @@ class ListsViewModel(application: Application) : AndroidViewModel(application) {
     private val _avoidPreviousResults = MutableStateFlow(repository.getAvoidPreviousResults())
     val avoidPreviousResults: StateFlow<Boolean> = _avoidPreviousResults.asStateFlow()
 
+    private val _showResultImmediately = MutableStateFlow(repository.getShowResultImmediately())
+    val showResultImmediately: StateFlow<Boolean> = _showResultImmediately.asStateFlow()
+
     private val _viewType = MutableStateFlow(repository.getViewType())
     val viewType: StateFlow<String> = _viewType.asStateFlow()
 
@@ -33,6 +36,11 @@ class ListsViewModel(application: Application) : AndroidViewModel(application) {
     fun setAvoidPreviousResults(value: Boolean) {
         _avoidPreviousResults.value = value
         repository.setAvoidPreviousResults(value)
+    }
+
+    fun setShowResultImmediately(value: Boolean) {
+        _showResultImmediately.value = value
+        repository.setShowResultImmediately(value)
     }
 
     fun setViewType(value: String) {
@@ -109,6 +117,7 @@ class ListsViewModel(application: Application) : AndroidViewModel(application) {
             // Reload data from repository
             _lists.value = repository.loadLists()
             _avoidPreviousResults.value = repository.getAvoidPreviousResults()
+            _showResultImmediately.value = repository.getShowResultImmediately()
             _viewType.value = repository.getViewType()
         }
         return success

@@ -1,5 +1,7 @@
 package com.tk.choosr.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -22,7 +24,35 @@ fun AppNavHost(
 ) {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = Routes.Home, modifier = modifier) {
+    NavHost(
+        navController = navController,
+        startDestination = Routes.Home,
+        modifier = modifier,
+        enterTransition = {
+            slideIntoContainer(
+                AnimatedContentTransitionScope.SlideDirection.Left,
+                animationSpec = tween(300)
+            )
+        },
+        exitTransition = {
+            slideOutOfContainer(
+                AnimatedContentTransitionScope.SlideDirection.Left,
+                animationSpec = tween(300)
+            )
+        },
+        popEnterTransition = {
+            slideIntoContainer(
+                AnimatedContentTransitionScope.SlideDirection.Right,
+                animationSpec = tween(300)
+            )
+        },
+        popExitTransition = {
+            slideOutOfContainer(
+                AnimatedContentTransitionScope.SlideDirection.Right,
+                animationSpec = tween(300)
+            )
+        }
+    ) {
         composable(Routes.Home) {
             HomeScreen(
                 viewModel = viewModel,
@@ -75,5 +105,4 @@ fun AppNavHost(
 
     }
 }
-
 

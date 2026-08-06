@@ -31,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.res.painterResource
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,12 +64,13 @@ fun ShuffleDialog(
     var currentIndex by remember { mutableStateOf<Int?>(null) }
     var isChoosing by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+    val showResultImmediately by viewModel.showResultImmediately.collectAsState()
 
     // Start the choosing process when dialog opens
     LaunchedEffect(list?.id) {
         if (list != null && list.items.isNotEmpty()) {
             isChoosing = true
-            delay(2000) // Wait 2 seconds
+            if (!showResultImmediately) delay(2000)
             currentIndex = viewModel.nextItemIndex(list.id)
             isChoosing = false
             isShowingResult = true
@@ -215,7 +217,7 @@ fun ShuffleDialog(
                             isShowingResult = false
                             // Restart the choosing process
                             coroutineScope.launch {
-                                delay(2000)
+                                if (!showResultImmediately) delay(2000)
                                 currentIndex = viewModel.nextItemIndex(list?.id ?: "")
                                 isChoosing = false
                                 isShowingResult = true
@@ -238,4 +240,3 @@ fun ShuffleDialog(
         }
     }
 }
-
